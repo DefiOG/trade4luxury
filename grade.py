@@ -185,7 +185,7 @@ def plan(feed):
                 continue
             e, st, t = (first_number(it.get(k)) for k in ("entry", "stop", "target"))
             if None in (e, st, t):
-                items.append({**base, "status": "ungradable", "note": "entry, stop or target isn't a number"})
+                items.append({**base, "status": "ungradable", "note": "Levels were written as conditions, not prices, so this one isn't tracked."})
                 continue
             root = root_of(base["contract"])
             ref = first_number(it.get("ref"))
