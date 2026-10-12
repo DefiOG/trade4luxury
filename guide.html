@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>How to Use Futures Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: a field manual. Sticky contents rail on wide screens, one reading column, an annotated example ticket as the centerpiece. */
+:root{
+  --bg:#ECEFF2; --surface:#FFFFFF; --surface-2:#F5F7F9; --line:#D3DAE1; --line-strong:#B4C0CC;
+  --ink:#16202B; --ink-2:#4A5866; --ink-3:#6E7B88;
+  --accent:#1D5C88; --accent-soft:#DCE8F2; --signal:#B8730F; --signal-soft:#F6E7CC;
+  --long:#1C7349; --long-soft:#DCEFE4; --short:#B0383A; --short-soft:#F6DEDE;
+  --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Source Sans 3","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:6px; color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0E141A; --surface:#161F28; --surface-2:#1B2631; --line:#2A3846; --line-strong:#3A4B5C;
+  --ink:#E2E8EE; --ink-2:#A9B6C3; --ink-3:#8293A3;
+  --accent:#73AEDC; --accent-soft:#1D3347; --signal:#E3A84E; --signal-soft:#3A2D17;
+  --long:#5BBE89; --long-soft:#173426; --short:#E5797A; --short-soft:#3B1F21; color-scheme:dark}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.6;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;letter-spacing:.01em;line-height:1.1;margin:0;text-wrap:balance}
+p{margin:0}
+a{color:var(--accent)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--f-display);font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.note{font-size:14px;color:var(--ink-3)}
+
+.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+.top-in{max-width:1100px;margin:0 auto;padding:12px 16px;display:flex;align-items:baseline;gap:12px 16px;flex-wrap:wrap}
+.top h1{font-size:26px}
+.top .back{margin-left:auto;font-weight:600;text-decoration:none}
+
+.layout{max-width:1100px;margin:0 auto;padding:28px 16px 64px;display:grid;grid-template-columns:220px minmax(0,1fr);gap:40px}
+@media (max-width:860px){.layout{grid-template-columns:1fr;gap:20px}}
+.toc{position:sticky;top:72px;align-self:start;display:grid;gap:2px}
+@media (max-width:860px){.toc{position:static;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}}
+.toc a{display:grid;grid-template-columns:2ch 1fr;gap:8px;text-decoration:none;color:var(--ink-2);padding:3px 0;font-size:15px}
+.toc a span{font-family:var(--f-mono);font-size:13px;color:var(--ink-3)}
+.toc a:hover{color:var(--ink)}
+
+article{display:grid;gap:48px;min-width:0;max-width:760px}
+.intro h2{font-size:44px;margin-top:6px}
+.intro p{font-size:19px;color:var(--ink-2);margin-top:12px;max-width:62ch}
+section{display:grid;gap:14px;min-width:0;scroll-margin-top:80px}
+section > h2{font-size:30px;display:flex;align-items:baseline;gap:12px}
+section > h2 .n{font-family:var(--f-mono);font-size:15px;color:var(--signal);font-weight:600}
+section p,section li{max-width:66ch}
+ul,ol{margin:0;padding-left:22px;display:grid;gap:6px}
+.callout{background:var(--signal-soft);border-radius:var(--r);padding:12px 16px;font-size:15px}
+.callout b{color:var(--signal)}
+
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th{font-family:var(--f-display);font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600;text-align:left;padding:8px 12px;border-bottom:1px solid var(--line-strong);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+
+.chip{display:inline-flex;align-items:center;font-family:var(--f-display);font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line);white-space:nowrap}
+.chip.long,.chip.A{background:var(--long-soft);color:var(--long);border-color:transparent}
+.chip.short{background:var(--short-soft);color:var(--short);border-color:transparent}
+.chip.B{background:var(--signal-soft);color:var(--signal);border-color:transparent}
+
+/* annotated example ticket */
+.anatomy{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:700px){.anatomy{grid-template-columns:1fr}}
+.ticket{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;position:relative}
+.ticket .tag{position:absolute;top:8px;right:8px;font-size:11px}
+.t-h{display:flex;align-items:center;gap:8px;padding:14px;border-bottom:1px dashed var(--line-strong);flex-wrap:wrap}
+.sym{font-family:var(--f-display);font-size:28px;font-weight:700;line-height:1}
+.score{margin-left:auto;text-align:right}
+.score b{font-family:var(--f-mono);font-size:20px;display:block;line-height:1}
+.t-b{padding:14px;display:grid;gap:10px;font-size:15px}
+.levels{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;background:var(--surface-2);border-radius:4px;padding:8px}
+.levels span{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-family:var(--f-display);font-weight:600}
+.levels b{font-family:var(--f-mono);font-size:13px;font-weight:500}
+.t-f{padding:10px 14px;border-top:1px solid var(--line);display:flex;justify-content:space-between;font-size:14px;color:var(--ink-2)}
+.pin{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--surface);font:600 12px var(--f-mono);flex:none}
+.keys{display:grid;gap:12px;margin:0;padding:0;list-style:none}
+.keys li{display:grid;grid-template-columns:22px 1fr;gap:10px;font-size:15px}
+.keys b{font-weight:600}
+
+.steps{counter-reset:s;display:grid;gap:10px;padding:0;list-style:none}
+.steps li{counter-increment:s;display:grid;grid-template-columns:28px 1fr;gap:10px}
+.steps li::before{content:counter(s);font-family:var(--f-mono);font-size:13px;font-weight:600;color:var(--surface);background:var(--ink-2);border-radius:4px;display:grid;place-items:center;height:22px;margin-top:2px}
+details{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 16px}
+details+details{margin-top:-6px}
+details summary{cursor:pointer;font-weight:600}
+details p{margin-top:8px;color:var(--ink-2)}
+.footer{font-size:14px;color:var(--ink-3);border-top:1px solid var(--line);padding-top:16px;max-width:70ch}
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in"><h1>Futures Desk</h1><span class="eyebrow">How to use</span><a class="back" href="./">← Back to the desk</a></div></header>
+
+<div class="layout">
+  <nav class="toc" aria-label="Contents">
+    <a href="#what"><span>1</span>What this is</a>
+    <a href="#day"><span>2</span>A day on the desk</a>
+    <a href="#setup"><span>3</span>Reading a setup</a>
+    <a href="#grades"><span>4</span>Scores and grades</a>
+    <a href="#regime"><span>5</span>Regime and mode</a>
+    <a href="#releases"><span>6</span>Release reactions</a>
+    <a href="#sectors"><span>7</span>Sector rotation</a>
+    <a href="#journal"><span>8</span>The trade journal</a>
+    <a href="#rate"><span>9</span>Rating and comments</a>
+    <a href="#markets"><span>10</span>Market cheat sheet</a>
+    <a href="#risk"><span>11</span>Risk basics</a>
+    <a href="#faq"><span>12</span>Questions</a>
+  </nav>
+
+  <article>
+    <div class="intro">
+      <div class="eyebrow">Friends &amp; family guide</div>
+      <h2>Read the brief, check the setup, then decide for yourself.</h2>
+      <p>Futures Desk is one trader's daily research, shared with a small circle. This page explains what you're looking at and how to use it well.</p>
+    </div>
+
+    <section id="what">
+      <h2><span class="n">01</span>What this is</h2>
+      <p>Every trading day, a research assistant reads the economic calendar, overnight market moves and the news, then writes a short brief with a handful of trade setups in futures markets. The approach comes from two books: Jim Cramer's <i>Mad Money: Watch TV, Get Rich</i> (do your homework, know the catalyst, think about where we are in the business cycle) and the study of economic indicators (which reports move markets, and in which direction).</p>
+      <div class="callout"><b>Ideas, not instructions.</b> Every setup is a hypothesis to check against live prices and your own judgment. Nobody here is a licensed adviser, and nothing here is a recommendation to buy or sell.</div>
+    </section>
+
+    <section id="day">
+      <h2><span class="n">02</span>A day on the desk</h2>
+      <p>The site updates itself a few minutes after each scan. Times are Eastern.</p>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>When</th><th>What appears</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">~7:58 AM</td><td><b>Pre-market brief.</b> Headline, today's releases, overnight moves, and 2–5 graded setups.</td></tr>
+          <tr><td class="mono">~8:28 AM</td><td><b>Sector rotation.</b> Which stock sectors money is flowing into and out of.</td></tr>
+          <tr><td class="mono">~8:58, 10:58, 2:58</td><td><b>Release reactions</b>, only on days a big report or Fed decision lands. They show what the number was, how markets reacted, and whether the morning setups still hold.</td></tr>
+          <tr><td class="mono">~4:58 PM</td><td>End-of-day refresh, including any trades logged that day.</td></tr>
+          <tr><td class="mono">Sun ~5:35 PM</td><td><b>Week ahead</b>, before futures reopen at 6 PM: the week's calendar, what to do if each report runs hot or cool, and swing ideas.</td></tr>
+        </tbody>
+      </table></div>
+      <p>The <b>Today</b> tab always shows the latest brief, with any release updates on top. <b>History</b> keeps everything from the past 90 days.</p>
+    </section>
+
+    <section id="setup">
+      <h2><span class="n">03</span>Reading a setup</h2>
+      <p>Each idea is shown as a ticket. Here's a made-up example with every part labeled.</p>
+      <div class="anatomy">
+        <div class="ticket" aria-label="Example setup ticket">
+          <div class="t-h"><span class="pin">1</span><span class="sym">GC</span><span class="chip long">long</span><span class="chip">swing</span>
+            <div class="score"><b>6</b><span class="chip B">B-setup</span></div><span class="pin">2</span></div>
+          <div class="t-b">
+            <p><span class="pin" style="display:inline-grid;margin-right:6px">3</span>Late-cycle energy shock favors gold, and yields have eased off their highs. Wait for a break of 4,250 to confirm.</p>
+            <p><span class="eyebrow">Catalyst</span> CPI Wednesday</p>
+            <div class="levels"><div><span>Entry</span><b>4,255</b></div><div><span>Stop</span><b>4,185</b></div><div><span>Target</span><b>4,399</b></div><div><span>R:R</span><b>2.1</b></div></div>
+            <div style="display:flex;gap:8px;align-items:center"><span class="pin">4</span><span class="note">Levels row</span></div>
+          </div>
+          <div class="t-f"><span>★★★★☆ 4.0 (3)</span><span style="display:flex;gap:6px;align-items:center"><span class="pin">5</span>Rate &amp; comment</span></div>
+        </div>
+        <ol class="keys">
+          <li><span class="pin">1</span><span><b>Market, direction, timeframe.</b> GC is gold futures. <span class="chip long">long</span> means betting it goes up; <span class="chip short">short</span> means betting it goes down; <span class="chip">watch</span> means not yet. The timeframe is <i>intraday</i> (same day), <i>swing</i> (days to weeks) or <i>position</i> (weeks to months).</span></li>
+          <li><span class="pin">2</span><span><b>Score and grade</b>, out of 10. Section 4 explains the grades.</span></li>
+          <li><span class="pin">3</span><span><b>Thesis and catalyst.</b> Why the idea exists, and the scheduled event that should move it. No catalyst, no trade.</span></li>
+          <li><span class="pin">4</span><span><b>Entry, stop, target, R:R.</b> Entry is where to get in. The stop is where the idea is wrong, so you get out. The target is where to take profit. R:R is reward divided by risk: 2.1 means the possible gain is about twice the possible loss.</span></li>
+          <li><span class="pin">5</span><span><b>Ratings and comments</b> from the circle. Section 9 covers how to add yours.</span></li>
+        </ol>
+      </div>
+      <div class="callout"><b>Levels age fast.</b> They come from research at the time of the scan, not a live price feed. If price has already blown through the entry or stop, the setup is stale. Skip it rather than chase.</div>
+    </section>
+
+    <section id="grades">
+      <h2><span class="n">04</span>Scores and grades</h2>
+      <p>Every setup is scored on the same seven-point checklist, for a total out of 10.</p>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Checklist item</th><th>Points</th><th>The question it asks</th></tr></thead>
+        <tbody>
+          <tr><td>Regime fit</td><td class="mono">0–2</td><td>Does the trade suit where we are in the economic cycle?</td></tr>
+          <tr><td>Catalyst</td><td class="mono">0–2</td><td>Is there a scheduled event inside the holding period?</td></tr>
+          <tr><td>Trend</td><td class="mono">0–2</td><td>Is price on the right side of its 20- and 50-day averages?</td></tr>
+          <tr><td>Location</td><td class="mono">0–1</td><td>Is the entry at a sensible level, not chasing a stretched move?</td></tr>
+          <tr><td>Positioning</td><td class="mono">0–1</td><td>Is everyone already on the same side?</td></tr>
+          <tr><td>Reward : risk</td><td class="mono">0–1</td><td>Is the possible gain at least twice the possible loss?</td></tr>
+          <tr><td>Confirmation</td><td class="mono">0–1</td><td>Do related markets agree?</td></tr>
+        </tbody>
+      </table></div>
+      <ul>
+        <li><span class="chip A">A</span> <b>8–10:</b> the strongest setups. Rare.</li>
+        <li><span class="chip B">B</span> <b>6–7:</b> worth considering, usually at half size or after confirmation.</li>
+        <li><span class="chip">C</span> <b>5 or less:</b> a watch, not a trade.</li>
+      </ul>
+    </section>
+
+    <section id="regime">
+      <h2><span class="n">05</span>Regime and mode</h2>
+      <p>Each brief names a <b>regime</b>: where the economy sits in the business cycle. Different markets tend to do well in each one.</p>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Regime</th><th>Usually helps</th><th>Usually hurts</th></tr></thead>
+        <tbody>
+          <tr><td>Early recovery</td><td>Stocks, small caps, copper</td><td>Gold, the dollar</td></tr>
+          <tr><td>Mid-cycle</td><td>Tech stocks, oil</td><td>Bonds</td></tr>
+          <tr><td>Late cycle / overheating</td><td>Oil, gold, grains</td><td>Tech, small caps, bonds</td></tr>
+          <tr><td>Slowdown</td><td>Bonds, gold, the yen</td><td>Small caps, copper, oil</td></tr>
+        </tbody>
+      </table></div>
+      <p>The <b>mode</b> tells you how markets are treating economic news. In <i>"good news is good"</i> mode, strong data lifts stocks. In <i>"good news is bad"</i> mode, strong data hurts stocks, because traders expect the Fed to keep rates higher for longer.</p>
+    </section>
+
+    <section id="releases">
+      <h2><span class="n">06</span>Release reactions</h2>
+      <p>Some reports move markets hard: jobs, inflation (CPI, PCE), retail sales, ISM surveys, oil inventories, crop reports and Fed decisions. When one lands, a <b>release update</b> appears at the top of Today within about 20 minutes.</p>
+      <ul>
+        <li><b>Actual vs. consensus:</b> what came out compared with what economists expected. The difference, called the <i>surprise</i>, is what moves prices.</li>
+        <li><b>Reaction:</b> how each market moved in the first minutes.</li>
+        <li><b>Morning ideas:</b> whether each earlier setup is confirmed or cancelled.</li>
+      </ul>
+      <div class="callout"><b>The first move often reverses.</b> The desk's rule is to wait 1–5 minutes after a release and only follow the direction that holds.</div>
+    </section>
+
+    <section id="sectors">
+      <h2><span class="n">07</span>Sector rotation</h2>
+      <p>The stock market is split into 11 sectors, each tracked by a fund (XLK for tech, XLE for energy, and so on). The sector scan sorts them into four groups by recent performance:</p>
+      <ul>
+        <li><span class="chip long">Leading</span> strong over the past month and the past week</li>
+        <li><span class="chip A">Improving</span> weak for the month, turning up this week</li>
+        <li><span class="chip B">Weakening</span> strong for the month, fading this week</li>
+        <li><span class="chip short">Lagging</span> weak over both</li>
+      </ul>
+      <p>When the leaders match what the regime predicts, the brief's view gets more weight. When they don't, it's a warning sign.</p>
+    </section>
+
+    <section id="journal">
+      <h2><span class="n">08</span>The trade journal</h2>
+      <p>This tab shows trades the desk actually took, win or lose, with the setup score each had. Results are shown in <b>R</b>: +2R means the trade made twice what it risked, and −1R means it hit its stop. Over time this shows whether the higher-graded setups really perform better.</p>
+    </section>
+
+    <section id="rate">
+      <h2><span class="n">09</span>Rating and comments</h2>
+      <ol class="steps">
+        <li>Tap <b>Rate &amp; comment</b> on any setup.</li>
+        <li>Pick 1–5 stars for how much you like the idea.</li>
+        <li>Add your name and a short comment, such as "Would wait for the CPI number first" or "Stop looks tight to me".</li>
+        <li>Tap <b>Post</b>. Everyone with the code sees it within seconds.</li>
+      </ol>
+      <p class="note">Comments are encrypted with the access code, so only people in the circle can read them. Be kind and specific; the point is better decisions.</p>
+    </section>
+
+    <section id="markets">
+      <h2><span class="n">10</span>Market cheat sheet</h2>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Symbol</th><th>Market</th><th>Micro version</th><th>What moves it</th></tr></thead>
+        <tbody>
+          <tr><td class="mono"><b>ES</b></td><td>S&amp;P 500</td><td class="mono">MES</td><td>Earnings, jobs, Fed, broad risk appetite</td></tr>
+          <tr><td class="mono"><b>NQ</b></td><td>Nasdaq-100 (big tech)</td><td class="mono">MNQ</td><td>Interest rates, inflation, AI and tech news</td></tr>
+          <tr><td class="mono"><b>RTY</b></td><td>Russell 2000 (small caps)</td><td class="mono">M2K</td><td>Borrowing costs, the domestic economy</td></tr>
+          <tr><td class="mono"><b>ZN</b></td><td>10-year Treasury note</td><td class="mono">–</td><td>Inflation and Fed expectations. Falls when yields rise.</td></tr>
+          <tr><td class="mono"><b>CL</b></td><td>Crude oil</td><td class="mono">MCL</td><td>Inventories, OPEC, Middle East supply</td></tr>
+          <tr><td class="mono"><b>NG</b></td><td>Natural gas</td><td class="mono">–</td><td>Weather, storage reports</td></tr>
+          <tr><td class="mono"><b>GC</b></td><td>Gold</td><td class="mono">MGC</td><td>Real interest rates, the dollar, fear</td></tr>
+          <tr><td class="mono"><b>HG</b></td><td>Copper</td><td class="mono">–</td><td>Global growth, China</td></tr>
+          <tr><td class="mono"><b>ZC ZS ZW</b></td><td>Corn, soybeans, wheat</td><td class="mono">–</td><td>USDA reports, weather, exports</td></tr>
+          <tr><td class="mono"><b>6E 6J</b></td><td>Euro, Japanese yen</td><td class="mono">–</td><td>Rate gaps between central banks</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="risk">
+      <h2><span class="n">11</span>Risk basics</h2>
+      <p>Futures are leveraged: a small move in price is a large move in your account, and losses can exceed what you deposited. If you're new, these rules are the ones that matter most.</p>
+      <ul>
+        <li><b>Paper trade first.</b> Follow the setups on a simulator for a month before risking real money.</li>
+        <li><b>Use micros.</b> A micro contract is one-tenth the size of the full one. One MES moves $5 per S&amp;P point instead of $50.</li>
+        <li><b>Risk a small, fixed slice.</b> Many traders risk 0.5–1% of the account per trade.</li>
+        <li><b>Set the stop before you enter, and never move it further away.</b></li>
+        <li><b>Size from the stop.</b> Example: a $10,000 account risking 1% has $100 to risk. An MES trade with a 10-point stop risks $50 per contract, so that's 2 contracts.</li>
+      </ul>
+    </section>
+
+    <section id="faq">
+      <h2><span class="n">12</span>Questions</h2>
+      <details><summary>I forgot the access code, or it stopped working.</summary><p>Ask the person who invited you. The code is changed now and then, and the site will say so when yours is out of date.</p></details>
+      <details><summary>Can I add it to my phone's home screen?</summary><p>Yes. On iPhone, open it in Safari, tap Share, then Add to Home Screen. On Android, open it in Chrome, tap the ⋮ menu, then Add to Home screen. With "Remember on this device" ticked, it opens straight to the desk.</p></details>
+      <details><summary>Why is a level shown as "spot" or described in words?</summary><p>When the research couldn't find a current futures price, it either gives the spot (cash) price and labels it, or describes the level, such as "pullback to the 20-day average", rather than guess a number.</p></details>
+      <details><summary>Can I share the site with someone else?</summary><p>Ask first. The circle is kept small on purpose, and every new person needs the code.</p></details>
+      <details><summary>Is this financial advice?</summary><p>No. It's one person's research and opinions, shared for discussion. Make your own decisions, and talk to a licensed professional about your situation.</p></details>
+    </section>
+
+    <p class="footer">Futures and options involve substantial risk of loss and aren't suitable for everyone. Past results, including those in the trade journal, don't guarantee future results.</p>
+  </article>
+</div>
+</body>
+</html>
