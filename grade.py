@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
 """
-Grade every Futures Desk setup against what prices actually did.
+Grade every Futures Desk setup against what real futures prices did.
 
-Runs daily after the close (GitHub Action). Steps:
+Runs each weekday evening from a scheduled task:
   1. Decrypt feed.enc.json with the access code (FD_ACCESS_CODE).
-  2. For each long/short idea with numeric entry, stop and target, pick a
-     price series: the ETF that tracks the contract (GC -> GLD, ES -> SPY ...)
-     or, for ETF/stock ideas, the ticker itself.
-  3. Futures levels are converted to the ETF in percentage terms, using the
-     idea's reference price `ref` (the contract's price when the levels were
-     set) and the ETF's close on the day before the scan.
-  4. Walk daily bars from the scan date applying fixed rules (below) and
-     record the result in R (multiples of the risk taken).
-  5. Write outcomes.enc.json (encrypted with the same code) with every result
-     and a scorecard by grade, market and timeframe.
+  2. `--fetch-script` prints a small script that the Claude browser pane on the
+     user's computer runs to download daily bars from Yahoo Finance (continuous
+     front-month futures such as GC=F; stocks and ETFs by ticker).
+  3. The result is saved to a file and passed with `--prices`; its checksum is
+     verified so a partly copied file can't produce wrong grades.
+  4. Each long/short idea with numeric entry, stop and target is walked through
+     the daily bars with the rules below; results are in R (multiples of risk).
+  5. outcomes.enc.json (encrypted with the same code) gets every result and a
+     scorecard by grade, market and timeframe.
+
+If an idea carries `ref` (the price its levels were based on, e.g. gold spot),
+levels are rescaled by the gap between `ref` and the futures close before the
+scan, so spot-quoted levels still grade correctly on futures.
 
 Rules (deliberately conservative, daily bars only):
   * Entry above the first bar's open on a long (below on a short) is a
@@ -27,9 +30,6 @@ Rules (deliberately conservative, daily bars only):
     on the fill bar itself, except for intraday ideas.
   * Time limit after the fill: intraday exits at that day's close, swing after
     10 bars, position after 40 bars ("expired", exit at the close).
-
-Data: Twelve Data free API (TWELVEDATA_API_KEY). Offline testing:
-  python3 grade.py --prices sample_prices.json --feed-json feed.json --out /tmp/o.json --plain
 """
 from __future__ import annotations
 
@@ -42,19 +42,38 @@ import os
 import pathlib
 import re
 import sys
-import time
-import urllib.parse
-import urllib.request
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from publish import decrypt, encrypt, norm  # noqa: E402
 
+# Futures root -> Yahoo continuous front-month symbol (real futures prices).
+# Micros grade on their full-size contract (same price, smaller size).
 PROXY = {
-    "ES": "SPY", "MES": "SPY", "NQ": "QQQ", "MNQ": "QQQ", "YM": "DIA", "MYM": "DIA",
-    "RTY": "IWM", "M2K": "IWM", "ZN": "IEF", "ZF": "IEI", "ZB": "TLT", "UB": "TLT",
-    "CL": "USO", "MCL": "USO", "NG": "UNG", "GC": "GLD", "MGC": "GLD", "SI": "SLV",
-    "HG": "CPER", "ZC": "CORN", "ZS": "SOYB", "ZW": "WEAT", "6E": "FXE", "6J": "FXY",
+    "ES": "ES=F", "MES": "ES=F", "NQ": "NQ=F", "MNQ": "NQ=F", "YM": "YM=F", "MYM": "YM=F",
+    "RTY": "RTY=F", "M2K": "RTY=F", "ZN": "ZN=F", "ZF": "ZF=F", "ZB": "ZB=F", "UB": "UB=F",
+    "CL": "CL=F", "MCL": "CL=F", "NG": "NG=F", "GC": "GC=F", "MGC": "GC=F", "SI": "SI=F",
+    "HG": "HG=F", "ZC": "ZC=F", "ZS": "ZS=F", "ZW": "ZW=F", "6E": "6E=F", "6J": "6J=F",
 }
+
+# Runs in the Claude browser pane on the user's computer (origin query1.finance.yahoo.com).
+FETCH_JS = r"""await (async () => {
+  const syms = __SYMS__, start = "__START__", out = {}; let sum = 0, n = 0;
+  for (const s of syms) {
+    try {
+      const r = await fetch("https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(s) + "?interval=1d&range=1y");
+      const x = (await r.json()).chart.result[0], q = x.indicators.quote[0], bars = [];
+      x.timestamp.forEach((t, i) => {
+        if ([q.open[i], q.high[i], q.low[i], q.close[i]].some(v => v == null)) return;
+        const d = new Date((t + x.meta.gmtoffset) * 1000).toISOString().slice(0, 10);
+        if (d < start) return;
+        const b = [d, +q.open[i].toPrecision(8), +q.high[i].toPrecision(8), +q.low[i].toPrecision(8), +q.close[i].toPrecision(8)];
+        bars.push(b); sum += b[4]; n++;
+      });
+      out[s] = bars;
+    } catch (e) { out[s] = "ERR " + e.message; }
+  }
+  return JSON.stringify({ bars: out, n, check: +sum.toFixed(4) });
+})()"""
 FUTURES_ROOTS = set(PROXY)
 FILL_WINDOW = {"intraday": 1, "swing": 3, "position": 10}
 HOLD_LIMIT = {"intraday": 1, "swing": 10, "position": 40}
@@ -94,19 +113,6 @@ def grade_of(score):
     except (TypeError, ValueError):
         return None
     return "A" if s >= 8 else "B" if s >= 6 else "C"
-
-
-# ---------------------------------------------------------------- prices
-def fetch_bars(symbol: str, key: str, size: int = 160) -> list[dict]:
-    q = urllib.parse.urlencode({"symbol": symbol, "interval": "1day", "outputsize": size, "apikey": key, "order": "ASC"})
-    with urllib.request.urlopen(f"https://api.twelvedata.com/time_series?{q}", timeout=30) as r:
-        data = json.load(r)
-    if data.get("status") != "ok":
-        raise RuntimeError(f"{symbol}: {data.get('message', 'no data')}")
-    bars = [{"d": v["datetime"][:10], "o": float(v["open"]), "h": float(v["high"]),
-             "l": float(v["low"]), "c": float(v["close"])} for v in data["values"]]
-    bars.sort(key=lambda b: b["d"])
-    return bars
 
 
 # ---------------------------------------------------------------- engine
@@ -182,14 +188,9 @@ def plan(feed):
                 items.append({**base, "status": "ungradable", "note": "entry, stop or target isn't a number"})
                 continue
             root = root_of(base["contract"])
-            if root in FUTURES_ROOTS:
-                ref = first_number(it.get("ref"))
-                if ref is None or ref <= 0:
-                    items.append({**base, "status": "ungradable", "note": "no reference price for the futures levels"})
-                    continue
-                items.append({**base, "proxy": PROXY[root], "ref": ref, "levels": [e, st, t], "start": start})
-            else:  # ETF or stock idea: grade on the ticker itself
-                items.append({**base, "proxy": root, "ref": None, "levels": [e, st, t], "start": start})
+            ref = first_number(it.get("ref"))
+            sym = PROXY.get(root, root)  # futures -> Yahoo futures symbol; ETF/stock -> itself
+            items.append({**base, "proxy": sym, "ref": ref if ref and ref > 0 else None, "levels": [e, st, t], "start": start})
     return items
 
 
@@ -208,13 +209,13 @@ def run(items, bars_by_symbol):
             continue
         e, st, t = it["levels"]
         if it["ref"]:
+            # Levels may be quoted off spot or a different contract month: rescale by
+            # the gap between the idea's reference price and the series' last close.
             prior = [b for b in bars if b["d"] < it["start"]]
-            if not prior:
-                res.update(status="ungradable", note="no proxy close before the scan")
-                out.append(res)
-                continue
-            k = prior[-1]["c"] / it["ref"]
-            e, st, t = e * k, st * k, t * k
+            if prior:
+                k = prior[-1]["c"] / it["ref"]
+                if 0.8 < k < 1.25:  # ignore nonsense refs (wrong units)
+                    e, st, t = e * k, st * k, t * k
         res.update(simulate(bars, it["start"], it["direction"], it["timeframe"], e, st, t))
         for f in ("fill", "exit"):
             if f in res:
@@ -248,13 +249,36 @@ def scorecard(results):
             "byTimeframe": by("timeframe"), "counts": counts}
 
 
+def load_prices(path: pathlib.Path) -> dict:
+    """Load the browser-fetched price file and verify its checksum."""
+    raw = json.loads(path.read_text())
+    if isinstance(raw, str):
+        raw = json.loads(raw)
+    if "bars" not in raw:  # test format {symbol: [{"d","o","h","l","c"}]}
+        return raw
+    total, count, bars = 0.0, 0, {}
+    for sym, rows in raw["bars"].items():
+        if isinstance(rows, str):
+            print(f"  {sym}: {rows}", file=sys.stderr)
+            continue
+        bars[sym] = [{"d": r[0], "o": r[1], "h": r[2], "l": r[3], "c": r[4]} for r in rows]
+        total += sum(r[4] for r in rows)
+        count += len(rows)
+    if count != raw.get("n") or abs(total - raw.get("check", 0)) > max(1e-3, abs(total) * 1e-9):
+        raise SystemExit(f"Price file failed its checksum (bars {count} vs {raw.get('n')}, sum {total:.4f} vs {raw.get('check')}). "
+                         "It was probably copied incompletely; fetch it again.")
+    return bars
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description="Grade Futures Desk setups.")
     p.add_argument("--feed", default=str(pathlib.Path(__file__).with_name("feed.enc.json")))
     p.add_argument("--feed-json", help="Plain (unencrypted) feed JSON, for testing")
-    p.add_argument("--prices", help="JSON file {symbol: [bars]} instead of fetching, for testing")
+    p.add_argument("--fetch-script", action="store_true", help="Print the browser script that fetches the prices needed, then exit")
+    p.add_argument("--prices", help="Price file written from the browser script's result")
     p.add_argument("--out", default=str(pathlib.Path(__file__).with_name("outcomes.enc.json")))
     p.add_argument("--plain", action="store_true", help="Write unencrypted JSON (testing only)")
+    p.add_argument("--plain-out", help="Also write an unencrypted copy here (for the private dashboard)")
     a = p.parse_args()
 
     code = os.environ.get("FD_ACCESS_CODE", "")
@@ -267,20 +291,14 @@ def main() -> int:
 
     items = plan(feed)
     symbols = sorted({i["proxy"] for i in items if "proxy" in i})
-    if a.prices:
-        bars = json.loads(pathlib.Path(a.prices).read_text())
-    else:
-        key = os.environ.get("TWELVEDATA_API_KEY", "")
-        if not key:
-            p.error("set TWELVEDATA_API_KEY")
-        bars = {}
-        for n, sym in enumerate(symbols):
-            if n:
-                time.sleep(8)  # free plan: 8 requests per minute
-            try:
-                bars[sym] = fetch_bars(sym, key)
-            except Exception as e:  # keep grading the rest
-                print(f"  {sym}: {e}", file=sys.stderr)
+    if a.fetch_script:
+        starts = [i["start"] for i in items if "proxy" in i]
+        start = (dt.date.fromisoformat(min(starts)) - dt.timedelta(days=10)).isoformat() if starts else dt.date.today().isoformat()
+        print(FETCH_JS.replace("__SYMS__", json.dumps(symbols)).replace("__START__", start) if symbols else "NO_SYMBOLS")
+        return 0
+    if not a.prices:
+        p.error("pass --prices (or --fetch-script to get the browser script)")
+    bars = load_prices(pathlib.Path(a.prices))
 
     results = run(items, bars)
     doc = {"v": 1, "generatedAt": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
@@ -288,6 +306,11 @@ def main() -> int:
            "results": results, "summary": scorecard(results)}
     path = pathlib.Path(a.out)
     path.write_text(json.dumps(doc, indent=1) if a.plain else json.dumps(encrypt(doc, code)))
+    if a.plain_out:
+        pathlib.Path(a.plain_out).write_text(json.dumps(doc))
+    today = dt.date.today().isoformat()
+    closed_today = [r for r in results if r.get("exit_on") == today and r.get("status") in ("target", "stop", "expired")]
+    print("CLOSED_TODAY " + json.dumps([{k: r.get(k) for k in ("contract", "direction", "grade", "status", "r", "date")} for r in closed_today]))
     s = doc["summary"]
     print(f"Graded {len(results)} ideas ({len(symbols)} symbols). Closed: {s['overall'].get('n', 0)}. Status counts: {s['counts']}")
     return 0
