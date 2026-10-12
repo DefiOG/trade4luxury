@@ -2,17 +2,18 @@
 """
 Grade every Futures Desk setup against what real futures prices did.
 
-Runs each weekday evening from a scheduled task:
-  1. Decrypt feed.enc.json with the access code (FD_ACCESS_CODE).
-  2. `--fetch-script` prints a small script that the Claude browser pane on the
+Runs each weekday evening from a scheduled task (no access code needed):
+  1. `--data export --fetch-script` reads the plain journal export (the private
+     data repo) and prints a small script that the Claude browser pane on the
      user's computer runs to download daily bars from Yahoo Finance (continuous
      front-month futures such as GC=F; stocks and ETFs by ticker).
-  3. The result is saved to a file and passed with `--prices`; its checksum is
+  2. The result is saved to a file and passed with `--prices`; its checksum is
      verified so a partly copied file can't produce wrong grades.
-  4. Each long/short idea with numeric entry, stop and target is walked through
-     the daily bars with the rules below; results are in R (multiples of risk).
-  5. outcomes.enc.json (encrypted with the same code) gets every result and a
-     scorecard by grade, market and timeframe.
+  3. Each long/short idea with numeric entry, stop and target is walked through
+     the daily bars with the rules below; results are in R (multiples of risk)
+     and paper dollars (one contract, or 100 shares for ETFs/stocks).
+  4. `--plain-out export/outcomes/latest.json` writes the results; pushing the
+     export makes the GitHub Action encrypt them into the shared feed.
 
 If an idea carries `ref` (the price its levels were based on, e.g. gold spot),
 levels are rescaled by the gap between `ref` and the futures close before the
@@ -44,7 +45,7 @@ import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-from publish import decrypt, encrypt, norm  # noqa: E402
+from publish import decrypt, encrypt, load_dir, norm  # noqa: E402
 
 # Futures root -> Yahoo continuous front-month symbol (real futures prices).
 # Micros grade on their full-size contract (same price, smaller size).
@@ -75,6 +76,21 @@ FETCH_JS = r"""await (async () => {
   return JSON.stringify({ bars: out, n, check: +sum.toFixed(4) });
 })()"""
 FUTURES_ROOTS = set(PROXY)
+
+# Dollars per 1.00 move in the Yahoo quote, for ONE contract of the named root.
+# Grains are quoted in cents (ZC=F 420 = $4.20/bu): 5,000 bu x $0.01 = $50 per point.
+POINT_VALUE = {
+    "ES": 50, "MES": 5, "NQ": 20, "MNQ": 2, "YM": 5, "MYM": 0.5, "RTY": 50, "M2K": 5,
+    "ZT": 2000, "ZF": 1000, "ZN": 1000, "ZB": 1000, "UB": 1000,
+    "CL": 1000, "MCL": 100, "NG": 10000, "GC": 100, "MGC": 10, "SI": 5000, "HG": 25000,
+    "ZC": 50, "ZS": 50, "ZW": 50, "6E": 125000, "6J": 12500000,
+}
+SHARES = 100  # stocks and ETFs: paper P&L per 100 shares
+
+
+def dollars(contract: str, points: float) -> float:
+    root = root_of(contract)
+    return round(points * POINT_VALUE.get(root, SHARES), 2)
 FILL_WINDOW = {"intraday": 1, "swing": 3, "position": 10}
 HOLD_LIMIT = {"intraday": 1, "swing": 10, "position": 40}
 KEEP_DAYS = 90
@@ -217,6 +233,15 @@ def run(items, bars_by_symbol):
                 if 0.8 < k < 1.25:  # ignore nonsense refs (wrong units)
                     e, st, t = e * k, st * k, t * k
         res.update(simulate(bars, it["start"], it["direction"], it["timeframe"], e, st, t))
+        sign = 1 if it["direction"] == "long" else -1
+        if "exit" in res:
+            res["pnl"] = dollars(it["contract"], sign * (res["exit"] - res["fill"]))
+            res["risk"] = dollars(it["contract"], abs(e - st))
+        elif res.get("status") == "open":
+            last = [b for b in bars if b["d"] >= it["start"]][-1]["c"]
+            res["pnl_now"] = dollars(it["contract"], sign * (last - res["fill"]))
+            res["risk"] = dollars(it["contract"], abs(e - st))
+        res["unit"] = "contract" if root_of(it["contract"]) in POINT_VALUE else f"{SHARES} shares"
         for f in ("fill", "exit"):
             if f in res:
                 res[f] = round(res[f], 4)
@@ -233,7 +258,8 @@ def scorecard(results):
             return {"n": 0}
         rs = [r["r"] for r in rows]
         wins = [x for x in rs if x > 0]
-        return {"n": len(rs), "win": round(len(wins) / len(rs), 3), "avgR": round(sum(rs) / len(rs), 2), "totalR": round(sum(rs), 2)}
+        pnl = round(sum(r.get("pnl", 0) for r in rows), 2)
+        return {"n": len(rs), "win": round(len(wins) / len(rs), 3), "avgR": round(sum(rs) / len(rs), 2), "totalR": round(sum(rs), 2), "pnl": pnl}
 
     def by(field, fn=lambda v: v or "–"):
         groups = {}
@@ -245,7 +271,16 @@ def scorecard(results):
     for r in results:
         counts[r.get("status", "?")] = counts.get(r.get("status", "?"), 0) + 1
     micro = {"MES": "ES", "MNQ": "NQ", "MYM": "YM", "M2K": "RTY", "MCL": "CL", "MGC": "GC"}
-    return {"overall": agg(closed), "byGrade": by("grade"), "byMarket": by("contract", lambda c: micro.get(root_of(c), root_of(c))),
+    # Paper account: one contract (or 100 shares) per idea, in the order trades closed.
+    curve, run_total = [], 0.0
+    for r in sorted(closed, key=lambda r: (r.get("exit_on") or "", r.get("key") or "")):
+        run_total += r.get("pnl", 0)
+        curve.append([r.get("exit_on"), round(run_total, 2)])
+    open_rows = [r for r in results if r.get("status") == "open"]
+    paper = {"closed": round(run_total, 2), "open": round(sum(r.get("pnl_now", 0) for r in open_rows), 2),
+             "openCount": len(open_rows), "curve": curve,
+             "best": max((r.get("pnl", 0) for r in closed), default=0), "worst": min((r.get("pnl", 0) for r in closed), default=0)}
+    return {"overall": agg(closed), "paper": paper, "byGrade": by("grade"), "byMarket": by("contract", lambda c: micro.get(root_of(c), root_of(c))),
             "byTimeframe": by("timeframe"), "counts": counts}
 
 
@@ -274,15 +309,18 @@ def main() -> int:
     p = argparse.ArgumentParser(description="Grade Futures Desk setups.")
     p.add_argument("--feed", default=str(pathlib.Path(__file__).with_name("feed.enc.json")))
     p.add_argument("--feed-json", help="Plain (unencrypted) feed JSON, for testing")
+    p.add_argument("--data", help="Plain journal export folder (holding scans/). No access code needed.")
     p.add_argument("--fetch-script", action="store_true", help="Print the browser script that fetches the prices needed, then exit")
     p.add_argument("--prices", help="Price file written from the browser script's result")
-    p.add_argument("--out", default=str(pathlib.Path(__file__).with_name("outcomes.enc.json")))
+    p.add_argument("--out", help="Encrypted outcomes file (legacy; the Action now encrypts outcomes inside the feed)")
     p.add_argument("--plain", action="store_true", help="Write unencrypted JSON (testing only)")
     p.add_argument("--plain-out", help="Also write an unencrypted copy here (for the private dashboard)")
     a = p.parse_args()
 
     code = os.environ.get("FD_ACCESS_CODE", "")
-    if a.feed_json:
+    if a.data:
+        feed = {"scans": load_dir(pathlib.Path(a.data) / "scans")}
+    elif a.feed_json:
         feed = json.loads(pathlib.Path(a.feed_json).read_text())
     else:
         if len(norm(code)) < 12:
@@ -302,17 +340,20 @@ def main() -> int:
 
     results = run(items, bars)
     doc = {"v": 1, "generatedAt": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
-           "method": "Daily bars on ETF proxies; futures levels converted by percentage from the idea's reference price. Stop counted first when both are hit in one bar.",
+           "method": "Paper trades graded on real daily futures prices (Yahoo continuous front month; ETFs and stocks by ticker). One contract (or 100 shares) per idea. Stop counted first when stop and target fall in the same bar.",
            "results": results, "summary": scorecard(results)}
-    path = pathlib.Path(a.out)
-    path.write_text(json.dumps(doc, indent=1) if a.plain else json.dumps(encrypt(doc, code)))
+    if a.out:
+        if len(norm(code)) < 12 and not a.plain:
+            p.error("--out needs FD_ACCESS_CODE (or --plain)")
+        pathlib.Path(a.out).write_text(json.dumps(doc, indent=1) if a.plain else json.dumps(encrypt(doc, code)))
     if a.plain_out:
         pathlib.Path(a.plain_out).write_text(json.dumps(doc))
     today = dt.date.today().isoformat()
     closed_today = [r for r in results if r.get("exit_on") == today and r.get("status") in ("target", "stop", "expired")]
-    print("CLOSED_TODAY " + json.dumps([{k: r.get(k) for k in ("contract", "direction", "grade", "status", "r", "date")} for r in closed_today]))
+    print("CLOSED_TODAY " + json.dumps([{k: r.get(k) for k in ("contract", "direction", "grade", "status", "r", "pnl", "unit", "date")} for r in closed_today]))
     s = doc["summary"]
-    print(f"Graded {len(results)} ideas ({len(symbols)} symbols). Closed: {s['overall'].get('n', 0)}. Status counts: {s['counts']}")
+    print(f"Graded {len(results)} ideas ({len(symbols)} symbols). Closed: {s['overall'].get('n', 0)}. "
+          f"Paper P&L closed ${s['paper']['closed']:,.2f}, open ${s['paper']['open']:,.2f}. Status counts: {s['counts']}")
     return 0
 
 

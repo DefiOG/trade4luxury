@@ -6,6 +6,9 @@ Reads journal documents exported from the private Futures Desk dashboard
 (one JSON file per document, named <doc_id>.json):
 
     <data>/scans/*.json     briefs, release reactions, sector scans, week-ahead
+    <data>/outcomes/latest.json      graded paper results (from grade.py)
+    <data>/regime/latest.json        macro regime gauge
+    <data>/positioning/latest.json   CFTC positioning percentiles
     <data>/trades/*.json    the trade journal (optional; use --no-trades to omit)
 
 and writes feed.enc.json: the feed encrypted with AES-256-GCM under a key
@@ -68,9 +71,14 @@ def build_feed(data: pathlib.Path, keep_days: int, include_trades: bool) -> dict
     scans.sort(key=lambda s: (str(s.get("date", "")), str(s.get("createdAt", ""))), reverse=True)
     trades = load_dir(data / "trades") if include_trades else []
     # Economic cheat sheet (reaction map), exported from the dashboard's "reactions" collection.
-    rx = {d["_id"]: d for d in load_dir(data / "reactions")}.get("map")
-    if rx:
-        rx.pop("_id", None)
+    def one(folder, name):
+        doc = {d["_id"]: d for d in load_dir(data / folder)}.get(name)
+        if doc:
+            doc.pop("_id", None)
+        return doc
+    rx = one("reactions", "map")
+    # Graded paper results, market regime gauge and futures positioning (each optional).
+    outcomes, regime, positioning = one("outcomes", "latest"), one("regime", "latest"), one("positioning", "latest")
     for t in trades:  # the shared page doesn't need these
         for k in ("notes", "fromScan", "updatedAt"):
             t.pop(k, None)
@@ -79,6 +87,9 @@ def build_feed(data: pathlib.Path, keep_days: int, include_trades: bool) -> dict
         "generatedAt": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
         "scans": scans,
         "reactions": rx,
+        "outcomes": outcomes,
+        "regime": regime,
+        "positioning": positioning,
         "trades": trades,
     }
 
