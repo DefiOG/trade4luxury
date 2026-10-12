@@ -67,6 +67,10 @@ def build_feed(data: pathlib.Path, keep_days: int, include_trades: bool) -> dict
     scans = [s for s in load_dir(data / "scans") if str(s.get("date", "")) >= cutoff]
     scans.sort(key=lambda s: (str(s.get("date", "")), str(s.get("createdAt", ""))), reverse=True)
     trades = load_dir(data / "trades") if include_trades else []
+    # Economic cheat sheet (reaction map), exported from the dashboard's "reactions" collection.
+    rx = {d["_id"]: d for d in load_dir(data / "reactions")}.get("map")
+    if rx:
+        rx.pop("_id", None)
     for t in trades:  # the shared page doesn't need these
         for k in ("notes", "fromScan", "updatedAt"):
             t.pop(k, None)
@@ -74,6 +78,7 @@ def build_feed(data: pathlib.Path, keep_days: int, include_trades: bool) -> dict
         "v": 1,
         "generatedAt": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
         "scans": scans,
+        "reactions": rx,
         "trades": trades,
     }
 

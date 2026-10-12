@@ -111,6 +111,44 @@ td.mono.small{white-space:nowrap}
 .cform input,.cform textarea{font:15px var(--f-body);color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:4px;padding:7px 9px;width:100%;resize:vertical;letter-spacing:0}
 .starpick{display:flex;gap:2px}
 .starpick button{background:none;border:0;font-size:24px;line-height:1;color:var(--signal);cursor:pointer;padding:2px 4px}
+/* Economic cheat sheet (shared). Uses the host page's color and font tokens. */
+.cs-panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r,6px);padding:18px;min-width:0;display:grid;gap:12px}
+.cs-panel+.cs-panel{margin-top:20px}
+.cs-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 16px}
+.cs-head h2{font-family:var(--f-display);font-weight:600;font-size:26px;margin:2px 0 0;line-height:1.1}
+.cs-eyebrow{font-family:var(--f-display);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.cs-muted{color:var(--ink-3)} .cs-small{font-size:13px} .mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.cs-pick{display:grid;gap:4px;min-width:min(100%,230px)}
+.cs-pick select{font:15px var(--f-body);color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:4px;padding:7px 9px;width:100%}
+.cs-notes{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 14px;margin:0}
+.cs-notes dt{font-family:var(--f-display);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:600;padding-top:2px}
+.cs-notes dd{margin:0;max-width:70ch}
+@media (max-width:560px){.cs-notes{grid-template-columns:1fr}.cs-notes dd{margin-bottom:6px}}
+.cs-movers{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.cs-chip{display:inline-flex;align-items:center;font-family:var(--f-display);font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line);white-space:nowrap}
+.cs-chip.high{background:var(--signal-soft);color:var(--signal);border-color:transparent}
+.cs-chip.ok{background:var(--long-soft);color:var(--long);border-color:transparent}
+.cs-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px}
+.cs-side{border:1px solid var(--line);border-radius:var(--r,6px);padding:12px 14px;border-top-width:3px}
+.cs-side.hot{border-top-color:var(--short)} .cs-side.cool{border-top-color:var(--long)}
+.cs-side h3{font-family:var(--f-display);font-weight:600;font-size:18px;margin:0}
+.cs-side ul{margin:8px 0 0;padding-left:18px;display:grid;gap:5px;font-size:14px}
+.cs-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.cs-btn{font:600 13px var(--f-body);border-radius:4px;padding:5px 10px;border:1px solid var(--line-strong,var(--line));background:var(--surface);color:var(--ink);cursor:pointer}
+.cs-btn.on{background:var(--accent);color:var(--surface);border-color:var(--accent)}
+.cs-scroll{overflow-x:auto}
+.cs-table{border-collapse:collapse;width:100%;font-size:14px}
+.cs-table th{font-family:var(--f-display);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600;text-align:left;padding:6px 8px;border-bottom:1px solid var(--line-strong,var(--line));white-space:nowrap}
+.cs-table td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.cs-table tr:last-child td{border-bottom:0}
+.cs-num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.cs-pos{color:var(--long)} .cs-neg{color:var(--short)}
+.cs-click{cursor:pointer} .cs-click:hover td{background:var(--surface-2)} .cs-sel td{background:var(--accent-soft)}
+.cs-barrow{display:flex;align-items:center;gap:6px}
+.cs-bar{flex:1;height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden;border:1px solid var(--line)}
+.cs-bar i{display:block;height:100%;background:var(--accent)} .cs-bar i.hi{background:var(--signal)}
+.cs-how summary{cursor:pointer} .cs-how ul{margin:6px 0 0;padding-left:18px}
+.cs-glance td:first-child{min-width:150px}
 </style>
 </head>
 <body>
@@ -138,6 +176,7 @@ td.mono.small{white-space:nowrap}
       <nav class="tabs" role="tablist">
         <button role="tab" data-tab="today" aria-selected="true">Today</button>
         <button role="tab" data-tab="history" aria-selected="false">History</button>
+        <button role="tab" data-tab="cheat" aria-selected="false">Cheat sheet</button>
         <button role="tab" data-tab="score" aria-selected="false">Scorecard</button>
         <button role="tab" data-tab="trades" aria-selected="false">Trade journal</button>
         <a class="tablink" href="guide.html">How to use</a>
@@ -147,12 +186,88 @@ td.mono.small{white-space:nowrap}
   <main>
     <section id="v-today"></section>
     <section id="v-history" hidden></section>
+    <section id="v-cheat" hidden><div id="cheat"></div></section>
     <section id="v-score" hidden></section>
     <section id="v-trades" hidden></section>
     <p class="disclaimer">Shared for friends and family. These are one trader's hypotheses for discussion, not investment advice or a recommendation to buy or sell anything. Futures are leveraged and you can lose more than you put in. Check every level against live quotes and make your own decisions.</p>
   </main>
 </div>
 
+<script>
+/* Economic cheat sheet renderer, shared by the Futures Desk dashboard and the friends site.
+   CheatSheet(rootEl, map) renders into rootEl; call again with new data to refresh. */
+(function(){
+"use strict";
+const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const short=s=>s.replace("=F","").replace("DX-Y.NYB","DXY");
+const BONDS={"ZN=F":1,"ZB=F":1};
+const TIER={1:["Top-tier","high"],2:["Important",""],3:["Secondary",""]};
+function reliable(r){const[,ah,ph,ac,pc,nh,nc]=r;return ah!=null&&ac!=null&&nh>=15&&nc>=15&&Math.abs(ah-ac)>=0.4&&((ph<=35&&pc>=65)||(ph>=65&&pc<=35))}
+function patterns(rep,syms,side){
+  const out=[];
+  rep.rows.forEach((r,i)=>{ if(!r||BONDS[syms[i].sym])return;
+    const avg=side==="hot"?r[1]:r[3], up=side==="hot"?r[2]:r[4], n=side==="hot"?r[5]:r[6];
+    if(avg==null||n<15)return;
+    const rise=up>=50, pct=rise?up:100-up;
+    if(pct<65||Math.abs(avg)<0.2||(rise?avg<0:avg>0))return;
+    out.push({s:syms[i],rise,pct,avg,n,both:reliable(r)});
+  });
+  return out.sort((a,b)=>(b.both-a.both)||(b.pct-a.pct)).slice(0,7);
+}
+function sentence(p){return `<li><b>${esc(p.s.name)}</b> <span class="mono">${esc(short(p.s.sym))}</span> ${p.rise?"rose":"fell"} on <b>${p.pct}%</b> of those days <span class="cs-muted">(avg ${p.avg>0?"+":""}${p.avg.toFixed(2)}%, ${p.n} days)</span>${p.both?' <span class="cs-chip ok" title="Moves the opposite way on the other side too">two-way</span>':""}</li>`}
+function topMovers(rep,syms,k){return rep.rows.map((r,i)=>({s:syms[i],v:r&&r[0]})).filter(x=>x.v!=null).sort((a,b)=>b.v-a.v).slice(0,k)}
+function strongest(rep,syms){
+  let best=null;
+  rep.rows.forEach((r,i)=>{ if(!r||!reliable(r)||BONDS[syms[i].sym])return; const sc=Math.max(r[2],100-r[2],r[4],100-r[4]); if(!best||sc>best.sc)best={sc,i,r}; });
+  if(!best)return "–";
+  const s=syms[best.i], r=best.r, hot=Math.max(r[2],100-r[2])>=Math.max(r[4],100-r[4]);
+  const up=hot?r[2]:r[4];
+  return `${hot?"Hot":"Cool"} → ${esc(s.name)} ${up>=50?"up":"down"} ${Math.max(up,100-up)}%`;
+}
+function cell(avg,up,n){if(avg==null)return '<td class="cs-num">–</td><td class="cs-num">–</td>';const strong=up>=65||up<=35;return `<td class="cs-num ${avg>0?"cs-pos":avg<0?"cs-neg":""}">${avg>0?"+":""}${avg.toFixed(2)}%</td><td class="cs-num"${strong?' style="font-weight:700"':""}>${up}%<span class="cs-muted"> /${n}</span></td>`}
+
+window.CheatSheet=function(root,m){
+  if(!root)return;
+  if(!m){root.innerHTML='<p class="cs-muted">The cheat sheet hasn\'t loaded yet.</p>';return}
+  const st=root.__cs||(root.__cs={key:m.reports[0].key,sort:"sens",reliableOnly:false,full:false});
+  const rep=m.reports.find(r=>r.key===st.key)||m.reports[0];
+  const syms=m.syms;
+  const glance=m.reports.map(r=>{const t=topMovers(r,syms,2);return `<tr data-cs-key="${esc(r.key)}" class="cs-click${r.key===rep.key?" cs-sel":""}"><td><b>${esc(r.label)}</b><div class="cs-muted cs-small">${esc(r.when)}</div></td><td><span class="cs-chip ${TIER[r.tier][1]}">${TIER[r.tier][0]}</span></td><td class="cs-small">${t.map(x=>`${esc(x.s.name)} <span class="mono">${x.v.toFixed(2)}×</span>`).join("<br>")}</td><td class="cs-small">${r.split?strongest(r,syms):'<span class="cs-muted">Sensitivity only</span>'}</td></tr>`}).join("");
+  const hot=rep.split?patterns(rep,syms,"hot"):[], cool=rep.split?patterns(rep,syms,"cool"):[];
+  let rows=syms.map((s,i)=>({s,r:rep.rows[i]})).filter(x=>x.r&&x.r[0]!=null);
+  if(st.reliableOnly)rows=rows.filter(x=>reliable(x.r));
+  rows.sort(st.sort==="sens"?(a,b)=>b.r[0]-a.r[0]:(a,b)=>Math.abs((b.r[1]??0)-(b.r[3]??0))-Math.abs((a.r[1]??0)-(a.r[3]??0)));
+  const maxS=Math.max(1.5,...rows.map(x=>x.r[0]));
+  root.innerHTML=`
+  <div class="cs-panel">
+    <div class="cs-head"><div><h2>Economic cheat sheet</h2><p class="cs-muted cs-small">${m.reports.length} reports · how 31 markets reacted on every release day, ${esc(m.period)}. Tap a report.</p></div></div>
+    <div class="cs-scroll"><table class="cs-table cs-glance"><thead><tr><th>Report</th><th>Impact</th><th>Moves most</th><th>Strongest pattern</th></tr></thead><tbody>${glance}</tbody></table></div>
+  </div>
+  <div class="cs-panel" id="cs-detail">
+    <div class="cs-head"><div><div class="cs-eyebrow">${TIER[rep.tier][0]} · ${esc(rep.when)}</div><h2>${esc(rep.label)}</h2></div>
+      <label class="cs-pick"><span class="cs-eyebrow">Report</span><select data-cs-select>${m.reports.map(r=>`<option value="${esc(r.key)}"${r.key===rep.key?" selected":""}>${esc(r.label)}</option>`).join("")}</select></label></div>
+    <dl class="cs-notes"><dt>What it is</dt><dd>${esc(rep.what)}</dd><dt>What to watch</dt><dd>${esc(rep.watch)}</dd><dt>Why it matters</dt><dd>${esc(rep.why)}</dd></dl>
+    <div class="cs-movers"><span class="cs-eyebrow">Moves most on release day</span> ${topMovers(rep,syms,5).map(x=>`<span class="cs-chip ${x.v>=1.1?"high":""}">${esc(x.s.name)} ${x.v.toFixed(2)}×</span>`).join(" ")}</div>
+    ${rep.split?`<div class="cs-two">
+      <div class="cs-side hot"><h3>If it comes in hot</h3><p class="cs-muted cs-small">${rep.hot} days when 2-year yields jumped (strong, inflationary${rep.key==="FOMC"?" or hawkish":""})</p>${hot.length?`<ul>${hot.map(sentence).join("")}</ul>`:'<p class="cs-muted">No consistent pattern outside bonds.</p>'}</div>
+      <div class="cs-side cool"><h3>If it comes in cool</h3><p class="cs-muted cs-small">${rep.cool} days when 2-year yields fell (weak, soft${rep.key==="FOMC"?" or dovish":""})</p>${cool.length?`<ul>${cool.map(sentence).join("")}</ul>`:'<p class="cs-muted">No consistent pattern outside bonds.</p>'}</div>
+    </div>`:`<p class="cs-small cs-muted">Weekly energy reports don't show a consistent hot/cool split in daily closes, so only sensitivity is shown. Trade them intraday on the inventory surprise.</p>`}
+    <div class="cs-controls"><button type="button" class="cs-btn" data-cs-full>${st.full?"Hide":"Show"} all 31 markets</button>${st.full?`<span class="cs-muted cs-small">Sort</span><button type="button" class="cs-btn${st.sort==="sens"?" on":""}" data-cs-sort="sens">Sensitivity</button>${rep.split?`<button type="button" class="cs-btn${st.sort==="split"?" on":""}" data-cs-sort="split">Hot vs. cool gap</button><label class="cs-small"><input type="checkbox" data-cs-rel${st.reliableOnly?" checked":""}> Reliable only</label>`:""}`:""}</div>
+    ${st.full?`<div class="cs-scroll"><table class="cs-table"><thead><tr><th>Market</th><th>Sensitivity</th>${rep.split?'<th class="cs-num">Hot avg</th><th class="cs-num">Up</th><th class="cs-num">Cool avg</th><th class="cs-num">Up</th><th></th>':""}</tr></thead><tbody>${rows.map(({s,r})=>`<tr><td><b class="mono">${esc(short(s.sym))}</b> <span class="cs-muted cs-small">${esc(s.name)}</span></td><td style="min-width:110px"><div class="cs-barrow"><div class="cs-bar"><i style="width:${Math.min(100,r[0]/maxS*100)}%"${r[0]>=1.1?' class="hi"':""}></i></div><span class="mono cs-small">${r[0].toFixed(2)}×</span></div></td>${rep.split?cell(r[1],r[2],r[5])+cell(r[3],r[4],r[6])+`<td>${reliable(r)?'<span class="cs-chip ok">reliable</span>':""}</td>`:""}</tr>`).join("")}</tbody></table></div>`:""}
+  </div>
+  <details class="cs-panel cs-how"><summary><b>How this was measured</b></summary><p class="cs-small">${esc(m.method)}</p><ul class="cs-small">${(m.caveats||[]).map(c=>`<li>${esc(c)}</li>`).join("")}</ul><p class="cs-small cs-muted">Patterns listed under hot/cool: the market moved that way on at least 65% of those days with an average move of 0.2% or more. "Two-way" means it also reliably moved the opposite way on the other side. Sensitivity: 1.20× means the average move on release day is 20% bigger than on a normal day. Bond rows are left out of the plain-English patterns because they help define hot and cool.</p></details>`;
+  if(!root.__csBound){root.__csBound=true;
+    root.addEventListener("click",e=>{const s=root.__cs;const k=e.target.closest("[data-cs-key]");
+      if(k){s.key=k.dataset.csKey;window.CheatSheet(root,root.__csData);const d=root.querySelector("#cs-detail");if(d)d.scrollIntoView({behavior:"smooth",block:"start"});return}
+      if(e.target.closest("[data-cs-full]")){s.full=!s.full;window.CheatSheet(root,root.__csData);return}
+      const so=e.target.closest("[data-cs-sort]");if(so){s.sort=so.dataset.csSort;window.CheatSheet(root,root.__csData)}});
+    root.addEventListener("change",e=>{const s=root.__cs;if(e.target.matches("[data-cs-select]")){s.key=e.target.value;window.CheatSheet(root,root.__csData)}else if(e.target.matches("[data-cs-rel]")){s.reliableOnly=e.target.checked;window.CheatSheet(root,root.__csData)}});
+  }
+  root.__csData=m;
+};
+})();
+
+</script>
 <script>
 (function(){
 "use strict";
@@ -249,7 +364,7 @@ document.addEventListener("submit",async e=>{
 });
 document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll("nav.tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
-  ["today","history","score","trades"].forEach(t=>$("#v-"+t).hidden=t!==b.dataset.tab);window.scrollTo(0,0);
+  ["today","history","cheat","score","trades"].forEach(t=>$("#v-"+t).hidden=t!==b.dataset.tab);window.scrollTo(0,0);
 }));
 
 /* ---------- rendering ---------- */
@@ -359,6 +474,7 @@ function renderScore(){
 function renderAll(){
   const d=new Date(FEED.generatedAt);$("#updated").textContent="Updated "+(isNaN(d)?"":d.toLocaleString(undefined,{weekday:"short",hour:"numeric",minute:"2-digit"}));
   renderToday();renderHistory();renderTrades();renderScore();
+  if(window.CheatSheet)window.CheatSheet(document.getElementById("cheat"),FEED.reactions||null);
 }
 
 /* ---------- unlock flow ---------- */
