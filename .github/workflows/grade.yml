@@ -1,0 +1,48 @@
+name: Grade setups
+
+on:
+  schedule:
+    # 21:20 UTC on weekdays = 5:20 PM EDT / 4:20 PM EST, after the US close
+    - cron: "20 21 * * 1-5"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: grade
+  cancel-in-progress: false
+
+jobs:
+  grade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install cryptography==43.0.3
+
+      - name: Grade
+        env:
+          FD_ACCESS_CODE: ${{ secrets.FD_ACCESS_CODE }}
+          TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
+        run: |
+          if [ -z "$FD_ACCESS_CODE" ] || [ -z "$TWELVEDATA_API_KEY" ]; then
+            echo "::error::Add the FD_ACCESS_CODE and TWELVEDATA_API_KEY repository secrets (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+          python3 grade.py
+
+      - name: Commit results
+        run: |
+          git config user.name "futures-desk-grader"
+          git config user.email "actions@users.noreply.github.com"
+          git add outcomes.enc.json
+          if git diff --cached --quiet; then echo "No changes."; exit 0; fi
+          git commit -m "Grade setups $(date -u +%F)"
+          for i in 1 2 3; do git pull --rebase -q && git push -q && break; sleep 5; done

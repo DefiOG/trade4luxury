@@ -104,6 +104,9 @@ details.scan .body{padding:14px 16px;display:grid;gap:14px}
 ul.plain{margin:0;padding-left:18px;display:grid;gap:4px}
 .empty{border:1px dashed var(--line-strong);border-radius:var(--r);padding:24px;text-align:center;color:var(--ink-2)}
 .disclaimer{font-size:13px;color:var(--ink-3);max-width:80ch}
+.result{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:14px;border-top:1px dashed var(--line);padding-top:8px}
+.result .note{flex-basis:100%}
+td.mono.small{white-space:nowrap}
 .cform{display:grid;gap:8px;padding-top:4px}
 .cform input,.cform textarea{font:15px var(--f-body);color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:4px;padding:7px 9px;width:100%;resize:vertical;letter-spacing:0}
 .starpick{display:flex;gap:2px}
@@ -135,6 +138,7 @@ ul.plain{margin:0;padding-left:18px;display:grid;gap:4px}
       <nav class="tabs" role="tablist">
         <button role="tab" data-tab="today" aria-selected="true">Today</button>
         <button role="tab" data-tab="history" aria-selected="false">History</button>
+        <button role="tab" data-tab="score" aria-selected="false">Scorecard</button>
         <button role="tab" data-tab="trades" aria-selected="false">Trade journal</button>
         <a class="tablink" href="guide.html">How to use</a>
       </nav>
@@ -143,6 +147,7 @@ ul.plain{margin:0;padding-left:18px;display:grid;gap:4px}
   <main>
     <section id="v-today"></section>
     <section id="v-history" hidden></section>
+    <section id="v-score" hidden></section>
     <section id="v-trades" hidden></section>
     <p class="disclaimer">Shared for friends and family. These are one trader's hypotheses for discussion, not investment advice or a recommendation to buy or sell anything. Futures are leveraged and you can lose more than you put in. Check every level against live quotes and make your own decisions.</p>
   </main>
@@ -172,8 +177,10 @@ const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 const norm=c=>String(c||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
 
 /* ---------- crypto ---------- */
-async function decryptFeed(code){
-  const res=await fetch("feed.enc.json?t="+Date.now(),{cache:"no-store"});
+const decryptFeed=code=>decryptFile("feed.enc.json",code);
+async function loadOutcomes(code){try{OUT=await decryptFile("outcomes.enc.json",code);OUTMAP={};(OUT.results||[]).forEach(r=>OUTMAP[r.key]=r)}catch(e){}}
+async function decryptFile(name,code){
+  const res=await fetch(name+"?t="+Date.now(),{cache:"no-store"});
   if(!res.ok)throw new Error("The feed couldn't be loaded. Check your connection and try again.");
   const env=await res.json();
   const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(norm(code)),"PBKDF2",false,["deriveKey"]);
@@ -185,6 +192,7 @@ async function decryptFeed(code){
 }
 
 /* ---------- state & tabs ---------- */
+let OUT=null,OUTMAP={};
 let FEED=null,COMMENTS={},CK=null,TOKEN="",NORM="",HASH2KEY={},lastId=0;
 const hex=buf=>[...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
 const sha=async s=>hex(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)));
@@ -241,7 +249,7 @@ document.addEventListener("submit",async e=>{
 });
 document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll("nav.tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
-  ["today","history","trades"].forEach(t=>$("#v-"+t).hidden=t!==b.dataset.tab);window.scrollTo(0,0);
+  ["today","history","score","trades"].forEach(t=>$("#v-"+t).hidden=t!==b.dataset.tab);window.scrollTo(0,0);
 }));
 
 /* ---------- rendering ---------- */
@@ -254,7 +262,8 @@ function ideaTicket(it,scan){
     <div class="t-h"><span class="sym">${esc(it.contract)}</span><span class="chip ${dirCls(it.direction)}">${esc(it.direction||"–")}</span>${it.timeframe?`<span class="chip">${esc(it.timeframe)}</span>`:""}
       <div class="score"><b>${esc(it.score??"–")}</b>${g?`<span class="chip ${g}">${g}-setup</span>`:""}</div></div>
     <div class="t-b"><p>${esc(it.thesis)}</p>${it.catalyst?`<p class="small"><span class="eyebrow">Catalyst</span> ${esc(it.catalyst)}</p>`:""}
-      <div class="levels"><div><span>Entry</span><b>${esc(it.entry??"–")}</b></div><div><span>Stop</span><b>${esc(it.stop??"–")}</b></div><div><span>Target</span><b>${esc(it.target??"–")}</b></div><div><span>R:R</span><b>${esc(it.rr??"–")}</b></div></div></div>
+      <div class="levels"><div><span>Entry</span><b>${esc(it.entry??"–")}</b></div><div><span>Stop</span><b>${esc(it.stop??"–")}</b></div><div><span>Target</span><b>${esc(it.target??"–")}</b></div><div><span>R:R</span><b>${esc(it.rr??"–")}</b></div></div>
+      ${resultHtml(OUTMAP[key])}</div>
     <div class="t-f">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
         <span class="small">${avg!=null?`<span class="stars" aria-label="Average ${avg.toFixed(1)} of 5">${"★".repeat(Math.round(avg))}${"☆".repeat(5-Math.round(avg))}</span> <span class="mono">${avg.toFixed(1)}</span> <span class="muted">(${scored.length})</span>`:'<span class="muted">No ratings yet</span>'}</span>
@@ -319,15 +328,44 @@ function renderTrades(){
   $("#v-trades").innerHTML=`<div class="stats">${tile("Closed trades",closed.length)}${tile("Win rate",closed.length?Math.round(wins.length/closed.length*100)+"%":"–")}${tile("Avg R",avgR!=null?fmtR(avgR):"–",avgR>0?"pos":avgR<0?"neg":"")}${tile("Net P&amp;L",closed.length?fmt$(net):"–",net>0?"pos":net<0?"neg":"")}</div>
   <div class="panel"><div class="panel-h"><h2>Trade journal</h2><span class="note">The trader's own logged trades</span></div>${rows.length?tableHtml(["Date","Mkt","Dir","Entry","Stop","Exit","R","Score","Thesis / lesson"],rows):'<div class="empty">No trades logged yet.</div>'}</div>`;
 }
+/* ---------- outcomes & scorecard ---------- */
+const RES={target:["Target hit","long"],stop:["Stopped out","short"],expired:["Time exit",""],open:["In trade","B"],waiting:["Waiting for entry",""],not_triggered:["Never triggered",""],pending:["Starts next session",""],ungradable:["Not gradable",""]};
+function resultHtml(o){
+  if(!o||o.status==="watch")return "";
+  const [label,cls]=RES[o.status]||[o.status,""];
+  const r=o.r!=null?` <b class="mono ${o.r>0?"pos":o.r<0?"neg":""}">${fmtR(o.r)}</b>`:o.r_now!=null?` <span class="mono muted">now ${fmtR(o.r_now)}</span>`:"";
+  const when=o.exit_on?` <span class="note">${esc(o.exit_on)}</span>`:o.filled_on?` <span class="note">since ${esc(o.filled_on)}</span>`:"";
+  return `<div class="result"><span class="eyebrow">Result</span> <span class="chip ${cls}">${esc(label)}</span>${r}${when}${o.note?`<div class="note">${esc(o.note)}</div>`:""}</div>`;
+}
+function renderScore(){
+  const el=$("#v-score");
+  if(!OUT){el.innerHTML=`<div class="empty">The first results arrive after tonight's grading run, once setups have had time to play out.</div>`;return}
+  const s=OUT.summary||{},o=s.overall||{};
+  const tile=(l,v,c="")=>`<div class="stat"><div class="eyebrow">${l}</div><b class="${c}">${v}</b></div>`;
+  const pct=x=>x==null?"–":Math.round(x*100)+"%";
+  const rowsOf=(obj,label)=>Object.entries(obj||{}).filter(([,v])=>v.n).map(([k,v])=>`<tr><td>${label(k)}</td><td class="num">${v.n}</td><td class="num">${pct(v.win)}</td><td class="num ${v.avgR>0?"pos":v.avgR<0?"neg":""}">${fmtR(v.avgR)}</td><td class="num ${v.totalR>0?"pos":v.totalR<0?"neg":""}">${fmtR(v.totalR)}</td></tr>`);
+  const head=["","Closed","Win %","Avg R","Total R"];
+  const gradeLbl=k=>["A","B","C"].includes(k)?`<span class="chip ${k}">${k}-setup</span>`:esc(k);
+  const c=s.counts||{},recent=(OUT.results||[]).filter(r=>["target","stop","expired"].includes(r.status)).sort((a,b)=>String(b.exit_on).localeCompare(String(a.exit_on))).slice(0,15);
+  const d=new Date(OUT.generatedAt);
+  el.innerHTML=`<div class="stats">${tile("Closed setups",o.n||0)}${tile("Win rate",pct(o.win))}${tile("Avg R per setup",o.n?fmtR(o.avgR):"–",o.avgR>0?"pos":o.avgR<0?"neg":"")}${tile("Total R",o.n?fmtR(o.totalR):"–",o.totalR>0?"pos":o.totalR<0?"neg":"")}</div>
+  <p class="note">Right now: ${c.open||0} in a trade, ${c.waiting||0} waiting for entry, ${c.not_triggered||0} never triggered.</p>
+  <div class="panel"><div class="panel-h"><h2>By grade</h2><span class="note">If A-setups don't beat B-setups, the scoring needs work.</span></div>${tableHtml(head,rowsOf(s.byGrade,gradeLbl))||'<div class="empty">No closed setups yet.</div>'}</div>
+  <div class="panel"><div class="panel-h"><h2>By market</h2></div>${tableHtml(head,rowsOf(s.byMarket,k=>`<b class="mono">${esc(k)}</b>`))||'<div class="empty">No closed setups yet.</div>'}</div>
+  <div class="panel"><div class="panel-h"><h2>By timeframe</h2></div>${tableHtml(head,rowsOf(s.byTimeframe,esc))||'<div class="empty">No closed setups yet.</div>'}</div>
+  ${recent.length?`<div class="panel"><div class="panel-h"><h2>Latest results</h2></div>${tableHtml(["Closed","Mkt","Dir","Grade","Result","R"],recent.map(r=>`<tr><td class="mono small">${esc(r.exit_on)}</td><td class="mono"><b>${esc(r.contract)}</b></td><td><span class="chip ${dirCls(r.direction)}">${esc(r.direction)}</span></td><td>${r.grade?`<span class="chip ${esc(r.grade)}">${esc(r.grade)}</span>`:"–"}</td><td>${esc((RES[r.status]||[r.status])[0])}</td><td class="num ${r.r>0?"pos":"neg"}">${fmtR(r.r)}</td></tr>`))}</div>`:""}
+  <p class="note" style="max-width:80ch">How grading works: every setup with numeric levels is checked against daily prices after the close, using the ETF that tracks each futures market (GC → GLD, ES → SPY, and so on), with levels converted by percentage. If a day touches both the stop and the target, it counts as a stop. Results are approximate and lean conservative. Last graded ${isNaN(d)?"–":esc(d.toLocaleString(undefined,{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}))}. ${c.ungradable?`${c.ungradable} setup${c.ungradable>1?"s":""} couldn't be graded (levels not given as numbers).`:""}</p>`;
+}
 function renderAll(){
   const d=new Date(FEED.generatedAt);$("#updated").textContent="Updated "+(isNaN(d)?"":d.toLocaleString(undefined,{weekday:"short",hour:"numeric",minute:"2-digit"}));
-  renderToday();renderHistory();renderTrades();
+  renderToday();renderHistory();renderTrades();renderScore();
 }
 
 /* ---------- unlock flow ---------- */
 async function open(code,remember){
   FEED=await decryptFeed(code);NORM=norm(code);
   if(remember)store("fd-code",norm(code));
+  await loadOutcomes(code);
   $("#gate").hidden=true;$("#app").hidden=false;renderAll();
   initComments(code).catch(()=>{});
 }
@@ -336,12 +374,12 @@ $("#unlock").addEventListener("submit",async e=>{
   try{await open($("#code").value,$("#remember").checked)}catch(err){$("#err").textContent=err.message}
   btn.disabled=false;btn.textContent="Unlock";
 });
-$("#lock").addEventListener("click",()=>{store("fd-code",null);FEED=null;CK=null;NORM="";TOKEN="";COMMENTS={};$("#app").hidden=true;$("#gate").hidden=false;$("#code").value=""});
+$("#lock").addEventListener("click",()=>{store("fd-code",null);FEED=null;OUT=null;OUTMAP={};CK=null;NORM="";TOKEN="";COMMENTS={};$("#app").hidden=true;$("#gate").hidden=false;$("#code").value=""});
 if(!(window.crypto&&crypto.subtle)){$("#err").textContent="This browser can't decrypt the feed. Try an up-to-date Chrome, Safari or Firefox.";$("#unlockBtn").disabled=true}
 const saved=store("fd-code");
 if(saved){open(saved,true).catch(err=>{if(err.badCode)store("fd-code",null);$("#err").textContent=err.badCode?"The access code has changed. Enter the new one.":err.message})}
 // new briefs: re-check the feed every 2 minutes; comments: every 15 seconds
-setInterval(()=>{if(FEED&&NORM_OR_SAVED()&&!document.hidden)decryptFeed(NORM_OR_SAVED()).then(async f=>{if(f.generatedAt!==FEED.generatedAt){FEED=f;if(CK)await indexKeys();if(!document.querySelector(".cform:not([hidden])"))renderAll()}}).catch(()=>{})},120000);
+setInterval(()=>{if(FEED&&NORM_OR_SAVED()&&!document.hidden)decryptFeed(NORM_OR_SAVED()).then(async f=>{const before=OUT&&OUT.generatedAt;await loadOutcomes(NORM_OR_SAVED());if(f.generatedAt!==FEED.generatedAt||(OUT&&OUT.generatedAt)!==before){FEED=f;if(CK)await indexKeys();if(!document.querySelector(".cform:not([hidden])"))renderAll()}}).catch(()=>{})},120000);
 setInterval(()=>{if(FEED&&!document.hidden)pullComments().catch(()=>{})},15000);
 function NORM_OR_SAVED(){return NORM||store("fd-code")}
 })();
