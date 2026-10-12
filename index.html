@@ -150,6 +150,42 @@ td.mono.small{white-space:nowrap}
 .cs-bar i{display:block;height:100%;background:var(--accent)} .cs-bar i.hi{background:var(--signal)}
 .cs-how summary{cursor:pointer} .cs-how ul{margin:6px 0 0;padding-left:18px}
 .cs-glance td:first-child{min-width:150px}
+/* FD-EXTRAS styles (shared). Uses the host page's tokens. */
+.fx-panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r,6px);padding:18px;min-width:0;display:grid;gap:12px;margin-bottom:20px}
+.fx-head h2{font-family:var(--f-display);font-weight:600;font-size:26px;margin:2px 0 0;line-height:1.1}
+.fx-eyebrow{font-family:var(--f-display);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.fx-muted{color:var(--ink-3)} .fx-small{font-size:13px} .fx-mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.fx-pos{color:var(--long)} .fx-neg{color:var(--short)}
+.fx-tilt{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;margin:0}
+.fx-tilt dt{font-family:var(--f-display);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:600;padding-top:2px}
+.fx-tilt dd{margin:0}
+.fx-flags{display:flex;flex-wrap:wrap;gap:6px}
+.fx-chip{display:inline-flex;align-items:center;font-family:var(--f-display);font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)}
+.fx-chip.warn{background:var(--signal-soft);color:var(--signal);border-color:transparent}
+.fx-chip.long{background:var(--long-soft);color:var(--long);border-color:transparent}
+.fx-chip.short{background:var(--short-soft);color:var(--short);border-color:transparent}
+.fx-gauges{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px 20px}
+.fx-gauge-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.fx-track,.fx-rankbar{position:relative;height:8px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);margin:6px 0 4px}
+.fx-track.two::after{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--line-strong)}
+.fx-track i,.fx-rankbar i{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;background:var(--ink);transform:translate(-50%,-50%);border:2px solid var(--surface)}
+.fx-rankbar{flex:1;height:6px;margin:0}.fx-rankbar i{width:10px;height:10px}
+.fx-rank{display:flex;align-items:center;gap:8px}
+.fx-ends{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-3)}
+.fx-more summary{cursor:pointer;font-weight:600;font-size:14px}
+.fx-more[open] summary{margin-bottom:8px}
+.fx-scroll{overflow-x:auto}
+.fx-table{width:100%;border-collapse:collapse;font-size:14px}
+.fx-table th{font-family:var(--f-display);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.fx-table td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.fx-num{text-align:right}
+.fx-up{color:var(--long)} .fx-dn{color:var(--short)} .fx-flat{color:var(--ink-3);font-size:10px}
+.fx-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r,6px);overflow:hidden}
+.fx-stat{background:var(--surface);padding:12px 14px}.fx-stat b{display:block;font-family:var(--f-mono);font-size:20px;margin-top:4px}
+.fx-curve{width:100%;height:140px;display:block}
+.fx-curve polyline{fill:none;stroke-width:2;vector-effect:non-scaling-stroke}
+.fx-curve polyline.up{stroke:var(--long)} .fx-curve polyline.dn{stroke:var(--short)}
+.fx-curve .zero{stroke:var(--line-strong);stroke-dasharray:4 4;vector-effect:non-scaling-stroke}
 </style>
 </head>
 <body>
@@ -195,6 +231,67 @@ td.mono.small{white-space:nowrap}
 </div>
 
 <script>
+/* FD-EXTRAS: macro regime gauge, crowded positioning and the paper ledger.
+   Shared by the Futures Desk dashboard and the friends site.
+   MacroPanel(root, regime, positioning) &middot; PaperPanel(root, outcomes) */
+(function(){
+"use strict";
+const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money=n=>n==null?"–":(n<0?"−$":n>0?"+$":"$")+Math.abs(n).toLocaleString(undefined,{maximumFractionDigits:0});
+const day=d=>{const x=new Date(String(d).slice(0,10)+"T12:00:00");return isNaN(x)?esc(d):x.toLocaleDateString(undefined,{month:"short",day:"numeric"})};
+function gauge(label,v,lo,hi,left,right,hotIsBad){
+  const p=Math.max(0,Math.min(100,(v-lo)/(hi-lo)*100));
+  const word=lo<0?(v>=0.25?right:v<=-0.25?left:"Neutral"):(v>=0.75?"High":v>=0.25?"Elevated":"Low");
+  return `<div class="fx-gauge"><div class="fx-gauge-h"><span class="fx-eyebrow">${esc(label)}</span><b>${esc(word)}</b></div>
+  <div class="fx-track${lo<0?" two":""}"><i style="left:${p}%"></i></div><div class="fx-ends"><span>${esc(left)}</span><span>${esc(right)}</span></div></div>`;
+}
+const arrow=s=>s>0?'<span class="fx-up" aria-label="up">▲</span>':s<0?'<span class="fx-dn" aria-label="down">▼</span>':'<span class="fx-flat" aria-label="neutral">●</span>';
+window.MacroPanel=function(root,rg,pos){
+  if(!root)return;
+  if(!rg&&!pos){root.innerHTML="";return}
+  let h="";
+  if(rg){
+    const s=rg.scores||{};
+    const groups={growth:"Growth",inflation:"Inflation",stress:"Financial stress",policy:"Policy"};
+    h+=`<section class="fx-panel"><div class="fx-head"><div><div class="fx-eyebrow">Macro regime &middot; updated ${day(rg.asOf)}</div><h2>${esc(rg.label)}</h2></div></div>
+    <dl class="fx-tilt"><dt>Tends to favor</dt><dd>${esc(rg.favors)}</dd><dt>Tends to hurt</dt><dd>${esc(rg.hurts)}</dd></dl>
+    ${(rg.flags||[]).length?`<div class="fx-flags">${rg.flags.map(f=>`<span class="fx-chip warn">${esc(f)}</span>`).join("")}</div>`:""}
+    <div class="fx-gauges">${gauge("Growth",s.growth||0,-1,1,"Weakening","Strengthening")}${gauge("Inflation",s.inflation||0,-1,1,"Cooling","Heating up")}${gauge("Financial stress",s.stress||0,0,1,"Calm","Stressed")}</div>
+    <details class="fx-more"><summary>The ${(rg.indicators||[]).length} indicators behind it</summary>
+    <div class="fx-scroll"><table class="fx-table"><tbody>${(rg.indicators||[]).map(i=>`<tr><td class="fx-muted fx-small">${esc(groups[i.group]||i.group)}</td><td><b>${esc(i.name)}</b></td><td class="fx-mono">${esc(i.value)}</td><td>${i.group==="policy"?"":arrow(i.group==="stress"?-i.signal:i.group==="inflation"?-i.signal:i.signal)}</td><td class="fx-small">${esc(i.text)} <span class="fx-muted">· ${day(i.asOf)}</span></td></tr>`).join("")}</tbody></table></div>
+    <p class="fx-small fx-muted">${esc(rg.method)} ▲ = good for the economy, ▼ = a worry.</p></details></section>`;
+  }
+  if(pos&&pos.rows){
+    const crowded=pos.rows.filter(r=>r.flag);
+    h+=`<section class="fx-panel"><div class="fx-head"><div><div class="fx-eyebrow">Positioning &middot; CFTC report of ${day(pos.asOf)}</div><h2>Crowded trades</h2></div></div>
+    ${crowded.length?`<div class="fx-flags">${crowded.map(r=>`<span class="fx-chip ${r.flag==="crowded long"?"long":"short"}">${esc(r.sym)} ${esc(r.flag)}</span>`).join("")}</div><p class="fx-small">Speculators are more one-sided in these than at almost any time in 3 years. A surprise against them can trigger a fast unwind, so the setup scorer gives no positioning point to a trade on the crowded side.</p>`:`<p class="fx-small">No market is at a 3-year positioning extreme right now.</p>`}
+    <details class="fx-more"><summary>All ${pos.rows.length} markets</summary><div class="fx-scroll"><table class="fx-table"><thead><tr><th>Market</th><th class="fx-num">Spec net</th><th class="fx-num">Week chg</th><th>3-yr rank</th></tr></thead><tbody>${pos.rows.map(r=>`<tr><td><b class="fx-mono">${esc(r.sym)}</b> <span class="fx-muted fx-small">${esc(r.name)}</span></td><td class="fx-num fx-mono">${r.net>0?"+":""}${r.net.toLocaleString()}</td><td class="fx-num fx-mono ${r.chg>0?"fx-pos":r.chg<0?"fx-neg":""}">${r.chg>0?"+":""}${r.chg.toLocaleString()}</td><td style="min-width:130px"><div class="fx-rank"><div class="fx-rankbar"><i style="left:${r.pct}%"></i></div><span class="fx-mono fx-small">${r.pct}</span></div>${r.flag?`<div class="fx-small"><b>${esc(r.flag)}</b></div>`:r.note?`<div class="fx-small fx-muted">${esc(r.note)}</div>`:""}</td></tr>`).join("")}</tbody></table></div>
+    <p class="fx-small fx-muted">${esc(pos.method)}</p></details></section>`;
+  }
+  root.innerHTML=h;
+};
+function curveSvg(curve){
+  if(!curve||curve.length<2)return "";
+  curve=[[curve[0][0],0],...curve];  // start from zero
+  const W=600,H=140,P=8,ys=[0,...curve.map(c=>c[1])],mn=Math.min(...ys),mx=Math.max(...ys),sp=mx-mn||1;
+  const x=i=>P+i*(W-2*P)/(curve.length-1),y=v=>H-P-(v-mn)/sp*(H-2*P);
+  const pts=curve.map((c,i)=>`${x(i).toFixed(1)},${y(c[1]).toFixed(1)}`).join(" ");
+  const end=curve[curve.length-1][1];
+  return `<svg class="fx-curve" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Paper equity curve, now ${money(end)}"><line x1="${P}" x2="${W-P}" y1="${y(0)}" y2="${y(0)}" class="zero"/><polyline points="${pts}" class="${end>=0?"up":"dn"}"/></svg>
+  <div class="fx-ends"><span>${day(curve[0][0])}</span><span>${day(curve[curve.length-1][0])}</span></div>`;
+}
+window.PaperPanel=function(root,out){
+  if(!root)return;
+  const p=out&&out.summary&&out.summary.paper;
+  if(!p){root.innerHTML="";return}
+  const tile=(l,v,c="")=>`<div class="fx-stat"><div class="fx-eyebrow">${l}</div><b class="${c}">${v}</b></div>`;
+  const cls=n=>n>0?"fx-pos":n<0?"fx-neg":"";
+  root.innerHTML=`<section class="fx-panel"><div class="fx-head"><div><div class="fx-eyebrow">Paper trading ledger</div><h2>${money(p.closed)} <span class="fx-small fx-muted">closed</span></h2></div></div>
+  <div class="fx-stats">${tile("Open P&amp;L",`${money(p.open)} <span class="fx-small fx-muted">(${p.openCount} open)</span>`,cls(p.open))}${tile("Best trade",money(p.best),cls(p.best))}${tile("Worst trade",money(p.worst),cls(p.worst))}</div>
+  ${p.curve&&p.curve.length>1?curveSvg(p.curve):'<p class="fx-small fx-muted">The equity curve appears after the second closed setup.</p>'}
+  <p class="fx-small fx-muted">Every setup the agent publishes is paper-traded automatically: one contract of the market it names (100 shares for ETFs and stocks), entered and exited by the grading rules, on real daily futures prices. No fees or slippage. Full-size contracts make swings big; the R columns compare setups fairly regardless of size.</p></section>`;
+};
+})();
 /* Economic cheat sheet renderer, shared by the Futures Desk dashboard and the friends site.
    CheatSheet(rootEl, map) renders into rootEl; call again with new data to refresh. */
 (function(){
@@ -295,7 +392,7 @@ const norm=c=>String(c||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
 
 /* ---------- crypto ---------- */
 const decryptFeed=code=>decryptFile("feed.enc.json",code);
-async function loadOutcomes(code){try{OUT=await decryptFile("outcomes.enc.json",code);OUTMAP={};(OUT.results||[]).forEach(r=>OUTMAP[r.key]=r)}catch(e){}}
+async function loadOutcomes(code,feed){feed=feed||FEED;try{OUT=feed&&feed.outcomes?feed.outcomes:await decryptFile("outcomes.enc.json",code);OUTMAP={};(OUT.results||[]).forEach(r=>OUTMAP[r.key]=r)}catch(e){}}
 async function decryptFile(name,code){
   const res=await fetch(name+"?t="+Date.now(),{cache:"no-store"});
   if(!res.ok)throw new Error("The feed couldn't be loaded. Check your connection and try again.");
@@ -418,13 +515,15 @@ function block(s,open){
 function renderToday(){
   const scans=FEED.scans||[];
   const brief=scans.find(s=>!s.kind||s.kind==="premarket"||s.kind==="adhoc");
-  if(!brief){$("#v-today").innerHTML=`<div class="empty">No briefs yet. The first one arrives on the next trading morning.</div>`;return}
+  const fx='<div id="fx-macro"></div>';
+  if(!brief){$("#v-today").innerHTML=`<div class="empty">No briefs yet. The first one arrives on the next trading morning.</div>`+fx;window.MacroPanel&&MacroPanel($("#fx-macro"),FEED.regime,FEED.positioning);return}
   const parts=[];
   scans.filter(s=>s.kind==="event"&&s.date===brief.date).forEach(s=>parts.push(block(s)));
   parts.push(block(brief));
   const sec=scans.find(s=>s.kind==="sectors");if(sec)parts.push(block(sec));
   const wk=scans.find(s=>s.kind==="weekly");if(wk)parts.push(`<details class="scan"><summary><span class="mono small muted">${esc(wk.date)}</span><span><b>Week ahead:</b> ${esc(wk.headline||"")}</span><span class="chip">Week ahead</span></summary><div class="body">${block(wk)}</div></details>`);
-  $("#v-today").innerHTML=parts.join("");
+  $("#v-today").innerHTML=parts.join("")+fx;
+  window.MacroPanel&&MacroPanel($("#fx-macro"),FEED.regime,FEED.positioning);
 }
 function renderHistory(){
   const scans=FEED.scans||[];
@@ -450,7 +549,8 @@ const RES={target:["Target hit","long"],stop:["Stopped out","short"],expired:["T
 function resultHtml(o){
   if(!o||o.status==="watch")return "";
   const [label,cls]=RES[o.status]||[o.status,""];
-  const r=o.r!=null?` <b class="mono ${o.r>0?"pos":o.r<0?"neg":""}">${fmtR(o.r)}</b>`:o.r_now!=null?` <span class="mono muted">now ${fmtR(o.r_now)}</span>`:"";
+  const usd=v=>v==null?"":` <span class="mono small ${v>0?"pos":v<0?"neg":""}">${v>0?"+":""}${fmt$(v)}</span>`;
+  const r=o.r!=null?` <b class="mono ${o.r>0?"pos":o.r<0?"neg":""}">${fmtR(o.r)}</b>${usd(o.pnl)}`:o.r_now!=null?` <span class="mono muted">now ${fmtR(o.r_now)}</span>${usd(o.pnl_now)}`:"";
   const when=o.exit_on?` <span class="note">${esc(o.exit_on)}</span>`:o.filled_on?` <span class="note">since ${esc(o.filled_on)}</span>`:"";
   return `<div class="result"><span class="eyebrow">Result</span> <span class="chip ${cls}">${esc(label)}</span>${r}${when}${o.note?`<div class="note">${esc(o.note)}</div>`:""}</div>`;
 }
@@ -460,18 +560,19 @@ function renderScore(){
   const s=OUT.summary||{},o=s.overall||{};
   const tile=(l,v,c="")=>`<div class="stat"><div class="eyebrow">${l}</div><b class="${c}">${v}</b></div>`;
   const pct=x=>x==null?"–":Math.round(x*100)+"%";
-  const rowsOf=(obj,label)=>Object.entries(obj||{}).filter(([,v])=>v.n).map(([k,v])=>`<tr><td>${label(k)}</td><td class="num">${v.n}</td><td class="num">${pct(v.win)}</td><td class="num ${v.avgR>0?"pos":v.avgR<0?"neg":""}">${fmtR(v.avgR)}</td><td class="num ${v.totalR>0?"pos":v.totalR<0?"neg":""}">${fmtR(v.totalR)}</td></tr>`);
-  const head=["","Closed","Win %","Avg R","Total R"];
+  const rowsOf=(obj,label)=>Object.entries(obj||{}).filter(([,v])=>v.n).map(([k,v])=>`<tr><td>${label(k)}</td><td class="num">${v.n}</td><td class="num">${pct(v.win)}</td><td class="num ${v.avgR>0?"pos":v.avgR<0?"neg":""}">${fmtR(v.avgR)}</td><td class="num ${v.totalR>0?"pos":v.totalR<0?"neg":""}">${fmtR(v.totalR)}</td><td class="num ${v.pnl>0?"pos":v.pnl<0?"neg":""}">${v.pnl!=null?fmt$(v.pnl):"–"}</td></tr>`);
+  const head=["","Closed","Win %","Avg R","Total R","Paper $"];
   const gradeLbl=k=>["A","B","C"].includes(k)?`<span class="chip ${k}">${k}-setup</span>`:esc(k);
   const c=s.counts||{},recent=(OUT.results||[]).filter(r=>["target","stop","expired"].includes(r.status)).sort((a,b)=>String(b.exit_on).localeCompare(String(a.exit_on))).slice(0,15);
   const d=new Date(OUT.generatedAt);
-  el.innerHTML=`<div class="stats">${tile("Closed setups",o.n||0)}${tile("Win rate",pct(o.win))}${tile("Avg R per setup",o.n?fmtR(o.avgR):"–",o.avgR>0?"pos":o.avgR<0?"neg":"")}${tile("Total R",o.n?fmtR(o.totalR):"–",o.totalR>0?"pos":o.totalR<0?"neg":"")}</div>
+  el.innerHTML=`<div id="fx-paper"></div><div class="stats">${tile("Closed setups",o.n||0)}${tile("Win rate",pct(o.win))}${tile("Avg R per setup",o.n?fmtR(o.avgR):"–",o.avgR>0?"pos":o.avgR<0?"neg":"")}${tile("Total R",o.n?fmtR(o.totalR):"–",o.totalR>0?"pos":o.totalR<0?"neg":"")}</div>
   <p class="note">Right now: ${c.open||0} in a trade, ${c.waiting||0} waiting for entry, ${c.not_triggered||0} never triggered.</p>
   <div class="panel"><div class="panel-h"><h2>By grade</h2><span class="note">If A-setups don't beat B-setups, the scoring needs work.</span></div>${tableHtml(head,rowsOf(s.byGrade,gradeLbl))||'<div class="empty">No closed setups yet.</div>'}</div>
   <div class="panel"><div class="panel-h"><h2>By market</h2></div>${tableHtml(head,rowsOf(s.byMarket,k=>`<b class="mono">${esc(k)}</b>`))||'<div class="empty">No closed setups yet.</div>'}</div>
   <div class="panel"><div class="panel-h"><h2>By timeframe</h2></div>${tableHtml(head,rowsOf(s.byTimeframe,esc))||'<div class="empty">No closed setups yet.</div>'}</div>
-  ${recent.length?`<div class="panel"><div class="panel-h"><h2>Latest results</h2></div>${tableHtml(["Closed","Mkt","Dir","Grade","Result","R"],recent.map(r=>`<tr><td class="mono small">${esc(r.exit_on)}</td><td class="mono"><b>${esc(r.contract)}</b></td><td><span class="chip ${dirCls(r.direction)}">${esc(r.direction)}</span></td><td>${r.grade?`<span class="chip ${esc(r.grade)}">${esc(r.grade)}</span>`:"–"}</td><td>${esc((RES[r.status]||[r.status])[0])}</td><td class="num ${r.r>0?"pos":"neg"}">${fmtR(r.r)}</td></tr>`))}</div>`:""}
-  <p class="note" style="max-width:80ch">How grading works: every setup with numeric levels is checked against real daily futures prices after each weekday close (stocks and ETFs against their own prices). If a day touches both the stop and the target, it counts as a stop, so results lean conservative. Last graded ${isNaN(d)?"–":esc(d.toLocaleString(undefined,{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}))}. ${c.ungradable?`${c.ungradable} setup${c.ungradable>1?"s":""} aren't tracked because their levels were written as conditions rather than prices.`:""}</p>`;
+  ${recent.length?`<div class="panel"><div class="panel-h"><h2>Latest results</h2></div>${tableHtml(["Closed","Mkt","Dir","Grade","Result","R","Paper $"],recent.map(r=>`<tr><td class="mono small">${esc(r.exit_on)}</td><td class="mono"><b>${esc(r.contract)}</b></td><td><span class="chip ${dirCls(r.direction)}">${esc(r.direction)}</span></td><td>${r.grade?`<span class="chip ${esc(r.grade)}">${esc(r.grade)}</span>`:"–"}</td><td>${esc((RES[r.status]||[r.status])[0])}</td><td class="num ${r.r>0?"pos":"neg"}">${fmtR(r.r)}</td><td class="num ${r.pnl>0?"pos":r.pnl<0?"neg":""}">${r.pnl!=null?fmt$(r.pnl):"–"}</td></tr>`))}</div>`:""}
+  <p class="note" style="max-width:80ch">How grading works: every setup with numeric levels is checked against real daily futures prices after each weekday close (stocks and ETFs against their own prices). If a day touches both the stop and the target, it counts as a stop, so results lean conservative. Paper dollars assume one contract per setup (100 shares for ETFs), no fees. Last graded ${isNaN(d)?"–":esc(d.toLocaleString(undefined,{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}))}. ${c.ungradable?`${c.ungradable} setup${c.ungradable>1?"s":""} aren't tracked because their levels were written as conditions rather than prices.`:""}</p>`;
+  window.PaperPanel&&PaperPanel($("#fx-paper"),OUT);
 }
 function renderAll(){
   const d=new Date(FEED.generatedAt);$("#updated").textContent="Updated "+(isNaN(d)?"":d.toLocaleString(undefined,{weekday:"short",hour:"numeric",minute:"2-digit"}));
@@ -497,7 +598,7 @@ if(!(window.crypto&&crypto.subtle)){$("#err").textContent="This browser can't de
 const saved=store("fd-code");
 if(saved){open(saved,true).catch(err=>{if(err.badCode)store("fd-code",null);$("#err").textContent=err.badCode?"The access code has changed. Enter the new one.":err.message})}
 // new briefs: re-check the feed every 2 minutes; comments: every 15 seconds
-setInterval(()=>{if(FEED&&NORM_OR_SAVED()&&!document.hidden)decryptFeed(NORM_OR_SAVED()).then(async f=>{const before=OUT&&OUT.generatedAt;await loadOutcomes(NORM_OR_SAVED());if(f.generatedAt!==FEED.generatedAt||(OUT&&OUT.generatedAt)!==before){FEED=f;if(CK)await indexKeys();if(!document.querySelector(".cform:not([hidden])"))renderAll()}}).catch(()=>{})},120000);
+setInterval(()=>{if(FEED&&NORM_OR_SAVED()&&!document.hidden)decryptFeed(NORM_OR_SAVED()).then(async f=>{const before=OUT&&OUT.generatedAt;await loadOutcomes(NORM_OR_SAVED(),f);if(f.generatedAt!==FEED.generatedAt||(OUT&&OUT.generatedAt)!==before){FEED=f;if(CK)await indexKeys();if(!document.querySelector(".cform:not([hidden])"))renderAll()}}).catch(()=>{})},120000);
 setInterval(()=>{if(FEED&&!document.hidden)pullComments().catch(()=>{})},15000);
 function NORM_OR_SAVED(){return NORM||store("fd-code")}
 })();
