@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Futures Desk · Circle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: an unlock screen, then a read-only trading-desk feed: Today, History, Trades. Same visual language as the private Futures Desk. */
+:root{
+  --bg:#ECEFF2; --surface:#FFFFFF; --surface-2:#F5F7F9; --line:#D3DAE1; --line-strong:#B4C0CC;
+  --ink:#16202B; --ink-2:#4A5866; --ink-3:#6E7B88;
+  --accent:#1D5C88; --accent-soft:#DCE8F2; --signal:#B8730F; --signal-soft:#F6E7CC;
+  --long:#1C7349; --long-soft:#DCEFE4; --short:#B0383A; --short-soft:#F6DEDE;
+  --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Source Sans 3","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:6px; color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0E141A; --surface:#161F28; --surface-2:#1B2631; --line:#2A3846; --line-strong:#3A4B5C;
+  --ink:#E2E8EE; --ink-2:#A9B6C3; --ink-3:#8293A3;
+  --accent:#73AEDC; --accent-soft:#1D3347; --signal:#E3A84E; --signal-soft:#3A2D17;
+  --long:#5BBE89; --long-soft:#173426; --short:#E5797A; --short-soft:#3B1F21; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+[hidden]{display:none!important}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;letter-spacing:.01em;margin:0;line-height:1.1;text-wrap:balance}
+p{margin:0}
+a{color:var(--accent)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--f-display);font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.muted{color:var(--ink-2)} .note{font-size:13px;color:var(--ink-3)} .small{font-size:13px}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* unlock */
+.gate{min-height:100vh;display:grid;place-items:center;padding:24px 16px}
+.gate-card{width:100%;max-width:400px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.gate-top{padding:22px 22px 18px;border-bottom:1px dashed var(--line-strong)}
+.gate-top h1{font-size:34px}
+.gate-top p{margin-top:6px;color:var(--ink-2)}
+.gate form{padding:20px 22px 22px;display:grid;gap:12px}
+label{font-family:var(--f-display);font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+input[type=password],input[type=text]{font:16px var(--f-mono);letter-spacing:.06em;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:4px;padding:10px 12px;width:100%}
+.check{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--ink-2)}
+.btn{font:600 15px var(--f-body);border-radius:4px;padding:9px 16px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn.primary{background:var(--accent);color:var(--surface);border-color:var(--accent)}
+.btn.ghost{border-color:transparent;background:none;color:var(--accent);padding-inline:6px}
+.btn:disabled{opacity:.6;cursor:wait}
+.err{color:var(--short);font-size:14px;min-height:1.2em}
+
+/* app */
+.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+.top-in{max-width:1100px;margin:0 auto;padding:12px 16px 0;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px}
+.top h1{font-size:26px}
+.top .meta{margin-left:auto;font-size:12px;color:var(--ink-3);display:flex;gap:12px;align-items:center}
+nav.tabs{flex-basis:100%;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav.tabs button{font-family:var(--f-display);font-size:16px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;background:none;border:0;border-bottom:3px solid transparent;color:var(--ink-2);padding:8px 12px 9px;cursor:pointer;white-space:nowrap}
+nav.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--signal)}
+main{max-width:1100px;margin:0 auto;padding:20px 16px 48px;display:grid;gap:20px}
+section{display:grid;gap:20px;min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;min-width:0;display:grid;gap:12px}
+.panel-h{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px}
+.headline{font-family:var(--f-display);font-size:28px;font-weight:600;line-height:1.15;text-wrap:balance}
+.kv{display:flex;flex-wrap:wrap;gap:6px 18px}
+.kv span b{font-weight:600}
+.chip{display:inline-flex;align-items:center;font-family:var(--f-display);font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line);white-space:nowrap}
+.chip.long,.chip.A{background:var(--long-soft);color:var(--long);border-color:transparent}
+.chip.short{background:var(--short-soft);color:var(--short);border-color:transparent}
+.chip.B{background:var(--signal-soft);color:var(--signal);border-color:transparent}
+.tickets{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,310px),1fr));gap:14px}
+.ticket{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.t-h{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px dashed var(--line-strong);flex-wrap:wrap}
+.sym{font-family:var(--f-display);font-size:26px;font-weight:700;line-height:1}
+.score{margin-left:auto;text-align:right}
+.score b{font-family:var(--f-mono);font-size:20px;display:block;line-height:1}
+.t-b{padding:12px 14px;display:grid;gap:10px;flex:1}
+.levels{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;background:var(--surface-2);border-radius:4px;padding:8px}
+.levels span{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-family:var(--f-display);font-weight:600}
+.levels b{font-family:var(--f-mono);font-size:13px;font-weight:500;overflow-wrap:anywhere}
+.t-f{padding:10px 14px;border-top:1px solid var(--line);display:grid;gap:8px}
+.stars{color:var(--signal);letter-spacing:1px}
+.comments{display:grid;gap:6px;font-size:14px}
+.comments div{background:var(--surface-2);border-radius:4px;padding:6px 8px}
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{font-family:var(--f-display);font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600;text-align:left;padding:6px 10px;border-bottom:1px solid var(--line-strong);white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.pos{color:var(--long)} .neg{color:var(--short)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.stat{background:var(--surface);padding:12px 14px}
+.stat b{display:block;font-family:var(--f-mono);font-size:22px;font-weight:600;margin-top:2px}
+details.scan{border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+details.scan summary{list-style:none;cursor:pointer;padding:12px 16px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 14px;align-items:baseline}
+details.scan summary::-webkit-details-marker{display:none}
+details.scan[open] summary{border-bottom:1px solid var(--line)}
+details.scan .body{padding:14px 16px;display:grid;gap:14px}
+ul.plain{margin:0;padding-left:18px;display:grid;gap:4px}
+.empty{border:1px dashed var(--line-strong);border-radius:var(--r);padding:24px;text-align:center;color:var(--ink-2)}
+.disclaimer{font-size:13px;color:var(--ink-3);max-width:80ch}
+.cform{display:grid;gap:8px;padding-top:4px}
+.cform input,.cform textarea{font:15px var(--f-body);color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:4px;padding:7px 9px;width:100%;resize:vertical;letter-spacing:0}
+.starpick{display:flex;gap:2px}
+.starpick button{background:none;border:0;font-size:24px;line-height:1;color:var(--signal);cursor:pointer;padding:2px 4px}
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="gate-top"><div class="eyebrow">Friends &amp; family</div><h1>Futures Desk</h1><p>Daily futures briefs, trade setups and sector rotation. Enter the access code you were given.</p></div>
+    <form id="unlock" autocomplete="off">
+      <label for="code">Access code</label>
+      <input id="code" type="password" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX" required>
+      <label class="check"><input type="checkbox" id="remember" checked> Remember on this device</label>
+      <button class="btn primary" type="submit" id="unlockBtn">Unlock</button>
+      <p class="err" id="err" role="alert"></p>
+      <p class="note">Everything on this site is encrypted. Without the code there's nothing to read.</p>
+    </form>
+  </div>
+</div>
+
+<div id="app" hidden>
+  <header class="top">
+    <div class="top-in">
+      <h1>Futures Desk</h1>
+      <div class="meta"><span id="updated"></span><button class="btn ghost" id="lock" type="button">Lock</button></div>
+      <nav class="tabs" role="tablist">
+        <button role="tab" data-tab="today" aria-selected="true">Today</button>
+        <button role="tab" data-tab="history" aria-selected="false">History</button>
+        <button role="tab" data-tab="trades" aria-selected="false">Trade journal</button>
+      </nav>
+    </div>
+  </header>
+  <main>
+    <section id="v-today"></section>
+    <section id="v-history" hidden></section>
+    <section id="v-trades" hidden></section>
+    <p class="disclaimer">Shared for friends and family. These are one trader's hypotheses for discussion, not investment advice or a recommendation to buy or sell anything. Futures are leveraged and you can lose more than you put in. Check every level against live quotes and make your own decisions.</p>
+  </main>
+</div>
+
+<script>
+(function(){
+"use strict";
+/* Live comments (Supabase free tier). The anon key is meant to be public;
+   comments are encrypted with the access code before they leave the browser,
+   and the database only accepts posts that carry a token derived from the code. */
+const SUPABASE_URL="https://mlvqtbkqrcgrzkhphqmc.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_YIIwZRrB44c3LVUlVkGa-A_Mi1X0O_Z";  // publishable key: safe to be public
+const LIVE=!!(SUPABASE_URL&&SUPABASE_ANON_KEY);
+const KIND={premarket:"Pre-market",adhoc:"Ad hoc",event:"Release reaction",sectors:"Sectors",weekly:"Week ahead",technical:"Technical"};
+const $=s=>document.querySelector(s);
+const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const safeUrl=u=>/^https?:\/\//i.test(String(u||""))?String(u):"";
+const num=v=>{const n=parseFloat(v);return isFinite(n)?n:null};
+const grade=s=>s==null?null:(s>=8?"A":s>=6?"B":"C");
+const dirCls=d=>{d=String(d||"").toLowerCase();return d==="long"?"long":d==="short"?"short":""};
+const sgn=v=>/^-|^−/.test(String(v||""))?"neg":/^\+/.test(String(v||""))?"pos":"";
+const fmt$=n=>(n<0?"−$":"$")+Math.abs(n).toLocaleString(undefined,{maximumFractionDigits:0});
+const fmtR=n=>(n>0?"+":n<0?"−":"")+Math.abs(n).toFixed(2)+"R";
+function store(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
+const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const norm=c=>String(c||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+
+/* ---------- crypto ---------- */
+async function decryptFeed(code){
+  const res=await fetch("feed.enc.json?t="+Date.now(),{cache:"no-store"});
+  if(!res.ok)throw new Error("The feed couldn't be loaded. Check your connection and try again.");
+  const env=await res.json();
+  const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(norm(code)),"PBKDF2",false,["deriveKey"]);
+  const key=await crypto.subtle.deriveKey({name:"PBKDF2",salt:b64(env.salt),iterations:env.iter,hash:"SHA-256"},base,{name:"AES-GCM",length:256},false,["decrypt"]);
+  let pt;
+  try{pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:b64(env.iv)},key,b64(env.ct))}
+  catch(e){const err=new Error("That code didn't work. Check it and try again.");err.badCode=true;throw err}
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+
+/* ---------- state & tabs ---------- */
+let FEED=null,COMMENTS={},CK=null,TOKEN="",NORM="",HASH2KEY={},lastId=0;
+const hex=buf=>[...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
+const sha=async s=>hex(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)));
+const toB64=buf=>btoa(String.fromCharCode(...new Uint8Array(buf)));
+function ago(t){const d=new Date(t);if(isNaN(d))return"";const m=Math.round((Date.now()-d)/60000);return m<1?"just now":m<60?m+"m ago":m<1440?Math.round(m/60)+"h ago":d.toLocaleDateString(undefined,{month:"short",day:"numeric"})}
+
+/* ---------- live comments ---------- */
+async function initComments(code){
+  if(!LIVE)return;
+  NORM=norm(code);
+  const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(NORM),"PBKDF2",false,["deriveKey"]);
+  CK=await crypto.subtle.deriveKey({name:"PBKDF2",salt:new TextEncoder().encode("futures-desk-comments-v1"),iterations:310000,hash:"SHA-256"},base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+  TOKEN=await sha("fd-write:"+NORM);
+  await indexKeys();COMMENTS={};lastId=0;await pullComments();
+}
+async function indexKeys(){
+  HASH2KEY={};
+  for(const s of FEED.scans||[])for(const it of s.ideas||[]){const k=s._id+"|"+(it.id||it.contract);HASH2KEY[(await sha(NORM+"|"+k)).slice(0,32)]=k}
+}
+function sbHeaders(extra){const h={apikey:SUPABASE_ANON_KEY};if(SUPABASE_ANON_KEY.startsWith("eyJ"))h.Authorization="Bearer "+SUPABASE_ANON_KEY;return Object.assign(h,extra||{})}
+async function pullComments(){
+  if(!LIVE||!CK)return;
+  const r=await fetch(`${SUPABASE_URL}/rest/v1/comments?select=id,created_at,setup_key,payload,iv&id=gt.${lastId}&order=id.asc&limit=1000`,{headers:sbHeaders()});
+  if(!r.ok)return;
+  const rows=await r.json();let changed=false;
+  for(const row of rows){
+    lastId=Math.max(lastId,row.id);const key=HASH2KEY[row.setup_key];if(!key)continue;
+    try{const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:b64(row.iv)},CK,b64(row.payload));const c=JSON.parse(new TextDecoder().decode(pt));
+      (COMMENTS[key]=COMMENTS[key]||[]).push({name:String(c.name||"").slice(0,40),rating:num(c.rating),comment:String(c.comment||"").slice(0,600),at:row.created_at});changed=true}catch(e){}
+  }
+  if(changed&&!document.querySelector(".cform:not([hidden])"))renderAll();
+}
+async function postComment(key,data){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},CK,new TextEncoder().encode(JSON.stringify(data)));
+  const r=await fetch(`${SUPABASE_URL}/rest/v1/comments`,{method:"POST",headers:sbHeaders({"Content-Type":"application/json",Prefer:"return=minimal"}),
+    body:JSON.stringify({setup_key:(await sha(NORM+"|"+key)).slice(0,32),payload:toB64(ct),iv:toB64(iv),token:TOKEN})});
+  if(!r.ok)throw new Error(r.status===401||r.status===403?"The site refused the post. The access code may have changed.":"Couldn't post. Try again in a moment.");
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-rate]");
+  if(b){const f=b.closest(".ticket").querySelector(".cform");f.hidden=!f.hidden;if(!f.hidden){const n=f.querySelector("[name=name]");n.value=store("fd-name")||"";(n.value?f.querySelector("textarea"):n).focus()}return}
+  const s=e.target.closest(".starpick button");
+  if(s){const n=+s.dataset.n,g=s.parentElement;g.dataset.v=n;g.querySelectorAll("button").forEach(x=>{const on=+x.dataset.n<=n;x.textContent=on?"★":"☆";x.setAttribute("aria-checked",+x.dataset.n===n)})}
+});
+document.addEventListener("submit",async e=>{
+  const f=e.target.closest(".cform");if(!f)return;e.preventDefault();
+  const name=f.querySelector("[name=name]").value.trim(),comment=f.querySelector("textarea").value.trim(),rating=num(f.querySelector(".starpick").dataset.v),msg=f.querySelector(".cmsg");
+  if(!rating&&!comment){msg.textContent="Add a rating or a comment.";return}
+  const btn=f.querySelector("button[type=submit]");btn.disabled=true;msg.textContent="Posting…";
+  try{store("fd-name",name);await postComment(f.dataset.key,{name,rating,comment});f.hidden=true;await pullComments();renderAll()}
+  catch(err){msg.textContent=err.message}
+  btn.disabled=false;
+});
+document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("nav.tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
+  ["today","history","trades"].forEach(t=>$("#v-"+t).hidden=t!==b.dataset.tab);window.scrollTo(0,0);
+}));
+
+/* ---------- rendering ---------- */
+function ratingFor(key){return COMMENTS[key]||[]}
+function ideaTicket(it,scan){
+  const g=it.grade||grade(num(it.score)),key=scan._id+"|"+(it.id||it.contract);
+  const rs=ratingFor(key),scored=rs.filter(r=>num(r.rating)!=null),avg=scored.length?scored.reduce((a,r)=>a+num(r.rating),0)/scored.length:null;
+  const cm=rs.filter(r=>r.comment);
+  return `<article class="ticket">
+    <div class="t-h"><span class="sym">${esc(it.contract)}</span><span class="chip ${dirCls(it.direction)}">${esc(it.direction||"–")}</span>${it.timeframe?`<span class="chip">${esc(it.timeframe)}</span>`:""}
+      <div class="score"><b>${esc(it.score??"–")}</b>${g?`<span class="chip ${g}">${g}-setup</span>`:""}</div></div>
+    <div class="t-b"><p>${esc(it.thesis)}</p>${it.catalyst?`<p class="small"><span class="eyebrow">Catalyst</span> ${esc(it.catalyst)}</p>`:""}
+      <div class="levels"><div><span>Entry</span><b>${esc(it.entry??"–")}</b></div><div><span>Stop</span><b>${esc(it.stop??"–")}</b></div><div><span>Target</span><b>${esc(it.target??"–")}</b></div><div><span>R:R</span><b>${esc(it.rr??"–")}</b></div></div></div>
+    <div class="t-f">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <span class="small">${avg!=null?`<span class="stars" aria-label="Average ${avg.toFixed(1)} of 5">${"★".repeat(Math.round(avg))}${"☆".repeat(5-Math.round(avg))}</span> <span class="mono">${avg.toFixed(1)}</span> <span class="muted">(${scored.length})</span>`:'<span class="muted">No ratings yet</span>'}</span>
+        ${LIVE?`<button class="btn ghost" type="button" data-rate="${esc(key)}">Rate &amp; comment</button>`:""}
+      </div>
+      ${cm.length?`<div class="comments">${cm.slice(-5).map(r=>`<div><b>${esc(r.name||"Someone")}</b>${num(r.rating)!=null?` · <span class="stars">${"★".repeat(Math.max(0,Math.min(5,Math.round(num(r.rating)))))}</span>`:""} <span class="note">${esc(ago(r.at))}</span><br>${esc(r.comment)}</div>`).join("")}</div>`:""}
+      ${LIVE?`<form class="cform" data-key="${esc(key)}" hidden>
+        <div class="starpick" role="radiogroup" aria-label="Your rating">${[1,2,3,4,5].map(n=>`<button type="button" role="radio" aria-checked="false" data-n="${n}" aria-label="${n} star${n>1?"s":""}">☆</button>`).join("")}</div>
+        <input type="text" name="name" maxlength="40" placeholder="Your name" aria-label="Your name">
+        <textarea name="comment" maxlength="600" rows="2" placeholder="Would you take it? What would you change?" aria-label="Comment"></textarea>
+        <div style="display:flex;gap:8px;align-items:center"><button class="btn primary" type="submit">Post</button><span class="note cmsg"></span></div>
+      </form>`:""}
+    </div></article>`;
+}
+function tableHtml(head,rows){return rows.length?`<div class="tbl-wrap"><table><thead><tr>${head.map(h=>`<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`:""}
+function extras(s){
+  let h="";
+  h+=tableHtml(["Release","Actual","Consensus","Prior","Surprise"],(s.releases||[]).map(r=>`<tr><td>${esc(r.event)}</td><td class="mono"><b>${esc(r.actual)}</b></td><td class="mono">${esc(r.consensus)}</td><td class="mono">${esc(r.prior)}</td><td>${esc(r.surprise)}</td></tr>`));
+  h+=tableHtml(["Market","Move","Read"],(s.reaction||[]).map(r=>`<tr><td class="mono"><b>${esc(r.symbol)}</b></td><td class="mono ${sgn(r.move)}">${esc(r.move)}</td><td class="small">${esc(r.note)}</td></tr>`));
+  h+=tableHtml(["Sector","ETF","1 wk","1 mo","Rotation","Note"],(s.sectors||[]).map(r=>{const st=String(r.status||"").toLowerCase();const c=st.startsWith("lead")?"long":st.startsWith("lag")?"short":st.startsWith("improv")?"A":st.startsWith("weak")?"B":"";return `<tr><td>${esc(r.name)}</td><td class="mono"><b>${esc(r.etf)}</b></td><td class="num ${sgn(r.change1w)}">${esc(r.change1w)}</td><td class="num ${sgn(r.change1m)}">${esc(r.change1m)}</td><td><span class="chip ${c}">${esc(r.status)}</span></td><td class="small">${esc(r.note)}</td></tr>`}));
+  h+=tableHtml(["Market","Last","Change","Note"],(s.snapshot||[]).map(r=>`<tr><td class="mono"><b>${esc(r.symbol)}</b></td><td class="num">${esc(r.last)}</td><td class="num ${sgn(r.change)}">${esc(r.change)}</td><td class="small">${esc(r.note)}</td></tr>`));
+  h+=tableHtml(["Day","ET","Release","Consensus","Prior","Impact"],(s.calendar||[]).map(c=>`<tr><td class="mono small">${esc(c.day)}</td><td class="mono small">${esc(c.time)}</td><td>${esc(c.event)}</td><td class="mono small">${esc(c.consensus)}</td><td class="mono small">${esc(c.prior)}</td><td>${esc(c.impact)}</td></tr>`));
+  return h;
+}
+function sources(s){const x=(s.sources||[]).filter(v=>safeUrl(v.url));return x.length?`<p class="note">Sources: ${x.map(v=>`<a href="${esc(safeUrl(v.url))}" target="_blank" rel="noopener">${esc(v.title||v.url)}</a>`).join(" · ")}</p>`:""}
+function block(s,open){
+  return `<div class="panel">
+    <div><div class="eyebrow">${esc(KIND[s.kind]||"Brief")}${s.window?" · "+esc(s.window):""} · ${esc(s.date)}</div><p class="headline" style="margin-top:6px">${esc(s.headline||"")}</p></div>
+    ${s.summary?`<p class="muted" style="max-width:72ch">${esc(s.summary)}</p>`:""}
+    ${s.regime||s.mode?`<div class="kv small">${s.regime?`<span><span class="eyebrow">Regime</span> <b>${esc(s.regime)}</b></span>`:""}${s.mode?`<span><span class="eyebrow">Mode</span> <b>${esc(s.mode)}</b></span>`:""}</div>`:""}
+    ${(s.ideas||[]).length?`<div class="tickets">${s.ideas.map(i=>ideaTicket(i,s)).join("")}</div>`:""}
+    ${(s.risks||[]).length?`<div><div class="eyebrow">Risks</div><ul class="plain small">${s.risks.map(r=>`<li>${esc(r)}</li>`).join("")}</ul></div>`:""}
+    ${extras(s)}${sources(s)}</div>`;
+}
+function renderToday(){
+  const scans=FEED.scans||[];
+  const brief=scans.find(s=>!s.kind||s.kind==="premarket"||s.kind==="adhoc");
+  if(!brief){$("#v-today").innerHTML=`<div class="empty">No briefs yet. The first one arrives on the next trading morning.</div>`;return}
+  const parts=[];
+  scans.filter(s=>s.kind==="event"&&s.date===brief.date).forEach(s=>parts.push(block(s)));
+  parts.push(block(brief));
+  const sec=scans.find(s=>s.kind==="sectors");if(sec)parts.push(block(sec));
+  const wk=scans.find(s=>s.kind==="weekly");if(wk)parts.push(`<details class="scan"><summary><span class="mono small muted">${esc(wk.date)}</span><span><b>Week ahead:</b> ${esc(wk.headline||"")}</span><span class="chip">Week ahead</span></summary><div class="body">${block(wk)}</div></details>`);
+  $("#v-today").innerHTML=parts.join("");
+}
+function renderHistory(){
+  const scans=FEED.scans||[];
+  $("#v-history").innerHTML=scans.length?scans.map(s=>`<details class="scan"><summary><span class="mono small muted">${esc(s.date)}</span><span><b>${esc(s.headline||KIND[s.kind]||"")}</b></span><span class="chip">${esc(KIND[s.kind]||"Brief")}</span></summary><div class="body">${block(s)}</div></details>`).join(""):`<div class="empty">Nothing here yet.</div>`;
+}
+function calc(t){
+  const e=num(t.entry),s=num(t.stop),x=num(t.exit),q=num(t.qty)||0,pv=num(t.pointValue)||0,f=num(t.fees)||0,d=t.direction==="short"?-1:1;
+  const risk=e!=null&&s!=null?Math.abs(e-s):null;
+  if(x==null||e==null)return{open:true};
+  return{open:false,pnl:(x-e)*d*q*pv-f,r:risk?((x-e)*d)/risk:null};
+}
+function renderTrades(){
+  const trades=(FEED.trades||[]).map(t=>({t,c:calc(t)})).sort((a,b)=>String(b.t.date).localeCompare(String(a.t.date)));
+  const closed=trades.filter(o=>!o.c.open),wins=closed.filter(o=>o.c.pnl>0),net=closed.reduce((a,o)=>a+o.c.pnl,0);
+  const rs=closed.filter(o=>o.c.r!=null).map(o=>o.c.r),avgR=rs.length?rs.reduce((a,b)=>a+b,0)/rs.length:null;
+  const tile=(l,v,c="")=>`<div class="stat"><div class="eyebrow">${l}</div><b class="${c}">${v}</b></div>`;
+  const rows=trades.map(({t,c})=>{const g=grade(num(t.score));return `<tr><td class="mono small">${esc(t.date)}</td><td class="mono"><b>${esc(t.contract)}</b></td><td><span class="chip ${dirCls(t.direction)}">${esc(t.direction)}</span></td><td class="num">${esc(t.entry)}</td><td class="num">${esc(t.stop)}</td><td class="num">${c.open?'<span class="chip">open</span>':esc(t.exit)}</td><td class="num ${c.r>0?"pos":c.r<0?"neg":""}">${c.r!=null?fmtR(c.r):"–"}</td><td>${g?`<span class="chip ${g}">${esc(t.score)}</span>`:"–"}</td><td class="small">${esc(t.catalyst)}${t.lesson?`<br><span class="muted">Lesson: ${esc(t.lesson)}</span>`:""}</td></tr>`});
+  $("#v-trades").innerHTML=`<div class="stats">${tile("Closed trades",closed.length)}${tile("Win rate",closed.length?Math.round(wins.length/closed.length*100)+"%":"–")}${tile("Avg R",avgR!=null?fmtR(avgR):"–",avgR>0?"pos":avgR<0?"neg":"")}${tile("Net P&amp;L",closed.length?fmt$(net):"–",net>0?"pos":net<0?"neg":"")}</div>
+  <div class="panel"><div class="panel-h"><h2>Trade journal</h2><span class="note">The trader's own logged trades</span></div>${rows.length?tableHtml(["Date","Mkt","Dir","Entry","Stop","Exit","R","Score","Thesis / lesson"],rows):'<div class="empty">No trades logged yet.</div>'}</div>`;
+}
+function renderAll(){
+  const d=new Date(FEED.generatedAt);$("#updated").textContent="Updated "+(isNaN(d)?"":d.toLocaleString(undefined,{weekday:"short",hour:"numeric",minute:"2-digit"}));
+  renderToday();renderHistory();renderTrades();
+}
+
+/* ---------- unlock flow ---------- */
+async function open(code,remember){
+  FEED=await decryptFeed(code);NORM=norm(code);
+  if(remember)store("fd-code",norm(code));
+  $("#gate").hidden=true;$("#app").hidden=false;renderAll();
+  initComments(code).catch(()=>{});
+}
+$("#unlock").addEventListener("submit",async e=>{
+  e.preventDefault();const btn=$("#unlockBtn");btn.disabled=true;btn.textContent="Unlocking…";$("#err").textContent="";
+  try{await open($("#code").value,$("#remember").checked)}catch(err){$("#err").textContent=err.message}
+  btn.disabled=false;btn.textContent="Unlock";
+});
+$("#lock").addEventListener("click",()=>{store("fd-code",null);FEED=null;CK=null;NORM="";TOKEN="";COMMENTS={};$("#app").hidden=true;$("#gate").hidden=false;$("#code").value=""});
+if(!(window.crypto&&crypto.subtle)){$("#err").textContent="This browser can't decrypt the feed. Try an up-to-date Chrome, Safari or Firefox.";$("#unlockBtn").disabled=true}
+const saved=store("fd-code");
+if(saved){open(saved,true).catch(err=>{if(err.badCode)store("fd-code",null);$("#err").textContent=err.badCode?"The access code has changed. Enter the new one.":err.message})}
+// new briefs: re-check the feed every 2 minutes; comments: every 15 seconds
+setInterval(()=>{if(FEED&&NORM_OR_SAVED()&&!document.hidden)decryptFeed(NORM_OR_SAVED()).then(async f=>{if(f.generatedAt!==FEED.generatedAt){FEED=f;if(CK)await indexKeys();if(!document.querySelector(".cform:not([hidden])"))renderAll()}}).catch(()=>{})},120000);
+setInterval(()=>{if(FEED&&!document.hidden)pullComments().catch(()=>{})},15000);
+function NORM_OR_SAVED(){return NORM||store("fd-code")}
+})();
+</script>
+</body>
+</html>
