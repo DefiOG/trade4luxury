@@ -128,6 +128,7 @@ td.mono.small{white-space:nowrap}
 .cs-chip{display:inline-flex;align-items:center;font-family:var(--f-display);font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line);white-space:nowrap}
 .cs-chip.high{background:var(--signal-soft);color:var(--signal);border-color:transparent}
 .cs-chip.ok{background:var(--long-soft);color:var(--long);border-color:transparent}
+.cs-howto summary{cursor:pointer}.cs-howto ul{margin:8px 0;padding-left:20px;display:grid;gap:6px;max-width:75ch}
 .cs-chip.warn{background:transparent;color:var(--ink-3);border-style:dashed}
 .cs-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px}
 .cs-side{border:1px solid var(--line);border-radius:var(--r,6px);padding:12px 14px;border-top-width:3px}
@@ -352,6 +353,7 @@ window.CheatSheet=function(root,m){
     <div class="cs-head"><div><div class="cs-eyebrow">${TIER[rep.tier][0]} · ${esc(rep.when)}</div><h2>${esc(rep.label)}</h2></div>
       <label class="cs-pick"><span class="cs-eyebrow">Report</span><select data-cs-select>${m.reports.map(r=>`<option value="${esc(r.key)}"${r.key===rep.key?" selected":""}>${esc(r.label)}</option>`).join("")}</select></label></div>
     <dl class="cs-notes"><dt>What it is</dt><dd>${esc(rep.what)}</dd><dt>What to watch</dt><dd>${esc(rep.watch)}</dd><dt>Why it matters</dt><dd>${esc(rep.why)}</dd></dl>
+    ${rep.howTo?`<details class="cs-howto" open><summary><b>How to read this report</b></summary><ul class="cs-small">${rep.howTo.tips.map(t=>`<li>${esc(t)}</li>`).join("")}</ul><p class="cs-small cs-muted">Source: <a href="${esc(rep.howTo.url)}" target="_blank" rel="noopener">${esc(rep.howTo.source)}</a></p></details>`:""}
     <div class="cs-movers"><span class="cs-eyebrow">Moves most on release day</span> ${topMovers(rep,syms,5).map(x=>`<span class="cs-chip ${x.v>=1.1?"high":""}">${esc(x.s.name)} ${x.v.toFixed(2)}×</span>`).join(" ")}</div>
     ${rep.split?`<div class="cs-two">
       <div class="cs-side hot"><h3>If it comes in hot</h3><p class="cs-muted cs-small">${rep.hot} days when 2-year yields jumped (strong, inflationary${rep.key==="FOMC"?" or hawkish":""})</p>${hot.length?`<ul>${hot.map(sentence).join("")}</ul>`:'<p class="cs-muted">No consistent pattern outside bonds.</p>'}</div>
