@@ -170,6 +170,8 @@ def main():
     scan = load(a.scan)
     snap = load(a.snapshot) if a.snapshot and pathlib.Path(a.snapshot).exists() else {}
     regime = load(a.regime) if a.regime and pathlib.Path(a.regime).exists() else {}
+    if isinstance(regime, dict) and "label" not in regime and isinstance(regime.get("data"), dict):
+        regime = regime["data"]  # tolerate a wrapped database export
     scan, report = validate(scan, snap, regime)
     pathlib.Path(a.out).write_text(json.dumps(scan, indent=1))
     ok = sum(1 for i in scan.get("ideas") or [] if i.get("eligible"))
