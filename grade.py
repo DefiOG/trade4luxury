@@ -15,7 +15,8 @@ Runs each weekday evening from a scheduled task (no access code needed):
   4. `--plain-out export/outcomes/latest.json` writes the results; pushing the
      export makes the GitHub Action encrypt them into the shared feed.
 
-If an idea carries `ref` (the price its levels were based on, e.g. gold spot),
+If an idea carries `ref` (the price its levels were based on, e.g. gold spot)
+and its scan wasn't priced from a live futures snapshot (pricesFrom "live"),
 levels are rescaled by the gap between `ref` and the futures close before the
 scan, so spot-quoted levels still grade correctly on futures.
 
@@ -206,7 +207,10 @@ def plan(feed):
             root = root_of(base["contract"])
             ref = first_number(it.get("ref"))
             sym = PROXY.get(root, root)  # futures -> Yahoo futures symbol; ETF/stock -> itself
-            items.append({**base, "proxy": sym, "ref": ref if ref and ref > 0 else None, "levels": [e, st, t], "start": start})
+            # Scans validated against a live futures snapshot already quote levels in the
+            # contract's own price ("pricesFrom": "live"), so their ref is not rescaled.
+            live = str(s.get("pricesFrom", "")).lower() == "live"
+            items.append({**base, "proxy": sym, "ref": None if live else (ref if ref and ref > 0 else None), "levels": [e, st, t], "start": start})
     return items
 
 
