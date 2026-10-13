@@ -101,8 +101,8 @@ Use sourced charts and economic/earnings information; never remembered prices.
 ## Data connection and results
 
 The first version supplies the desk, feed routing and defensive display
-validation. It does not yet supply a Schwab/Alpaca adapter, live chart scanner,
-activation monitor or options-results grader. Connect a licensed source
+validation. It does not yet supply a Schwab/Alpaca adapter, live provider adapter,
+automated monitor or options-results grader. Connect a licensed source
 server-side after credentials and entitlements are available. Existing feed
 refresh is two minutes; live activation will require a faster publication path.
 
@@ -119,3 +119,44 @@ Run:
 With a temporary empty export directory, publish.py should produce
 optionsDesk.scans = [] and preserve all existing futures fields. Render the
 encrypted site with its existing access flow and check both tabs on mobile.
+
+## Technical scanner (implemented)
+
+stock-scanner.cjs is provider-neutral. stock-scan.cjs consumes a normalized
+snapshot and writes a private export compatible with this desk:
+
+    node stock-scan.cjs --input /private/normalized-bars.json --output /private/export/stock_options/scans/YYYY-MM-DD-stocks.json
+    node stock-scanner.test.cjs
+
+Input is { symbols: [symbol snapshots], config?: {tickSize, volumeMultiple, minScore} }.
+Each symbol includes ticker, daily, weekly, fifteenMinute, fiveMinute, quote,
+and events. Candle objects are {open,high,low,close,volume,closedAt,complete,
+session}; close timestamps require timezone offsets and must be unique and
+ordered. session is regular or extended.
+
+Minimum completed history: 51 daily, 21 weekly, 6 fifteen-minute and 21 five-minute
+bars. For VWAP confirmation, the five-minute series must include the entire
+current regular session starting with the 09:35 ET close, without gaps.
+VWAP is a typical-price candle approximation, not tick-accurate traded VWAP.
+
+quote includes source, at, price, feed = realtime, coverage = consolidated.
+events includes source, checkedAt, status = clear or scheduled, nextMajorAt
+(null when clear). Events are checked within the last 24 hours. A major event
+inside 30 minutes blocks arming/activation; this is a basic event buffer,
+not a complete earnings holding policy.
+
+The scanner checks weekly 20-period and daily 20/50-period trend, ATR extension,
+recent 15-minute reclaim/rejection levels, a completed 5-minute crossing,
+15-minute candle alignment, full-session VWAP and relative volume. Targets
+use confirmed daily/weekly pivots (two bars either side). It never extends
+a target to manufacture 2:1. Delayed or partial-market feeds stay watching.
+An actual quote that gaps beyond acceptable geometry cannot trigger.
+
+The scanner quality score is technical only (maximum 8); it is not the
+futures macro score. These are initial rules requiring historical validation,
+not a demonstrated edge. Activation records use a quote reference, not a
+verified brokerage fill. Contracts remain pending; no strike is invented.
+
+The CLI processes a snapshot when invoked. Live scheduling, duplicate-event
+handling, persisted setup lifecycle, broker adapter and website push delivery
+still require integration. Provider secrets must remain server-side.
