@@ -191,6 +191,10 @@ td.mono.small{white-space:nowrap}
 .fx-filter{display:grid;grid-template-columns:86px minmax(0,1fr);gap:10px;align-items:start}
 .fx-filter .fx-chip{justify-content:center}
 .fx-hurdles{max-width:360px}
+.fx-cond{border-left:3px solid var(--signal);padding:6px 10px;background:var(--signal-soft);border-radius:4px;display:grid;gap:2px;margin:6px 0}
+.fx-valid{font-size:13px;border-left:3px solid var(--short);padding:6px 10px;background:var(--short-soft);border-radius:4px;margin:6px 0}
+.fx-override{font-size:13px;border-left:3px solid var(--signal);padding:6px 10px;background:var(--signal-soft);border-radius:4px;margin-top:6px}
+/* FD-EXTRAS end */
 </style>
 </head>
 <body>
@@ -251,13 +255,35 @@ function gauge(label,v,lo,hi,left,right,hotIsBad){
   <div class="fx-track${lo<0?" two":""}"><i style="left:${p}%"></i></div><div class="fx-ends"><span>${esc(left)}</span><span>${esc(right)}</span></div></div>`;
 }
 const arrow=s=>s>0?'<span class="fx-up" aria-label="up">▲</span>':s<0?'<span class="fx-dn" aria-label="down">▼</span>':'<span class="fx-flat" aria-label="neutral">●</span>';
+
+/* Shared scan helpers: consensus/nowcast values, conditional ideas, validator notes, regime override. */
+window.FX={
+  val(x){ if(x==null||x==="")return "–"; if(typeof x!=="object")return esc(x);
+    const t=x.retrievedAt?new Date(x.retrievedAt):null;
+    return `${esc(x.value??"–")}${x.source?` <span class="fx-muted fx-small">${esc(x.source)}${t&&!isNaN(t)?" · "+esc(t.toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})):""}</span>`:""}`; },
+  surprise(r){ const z=typeof r.z==="number"?r.z:null;
+    return `${esc(r.surprise||"")}${z!=null?` <span class="fx-mono fx-small ${Math.abs(z)>=1.5?"":"fx-muted"}">Z ${z>0?"+":""}${z.toFixed(1)}${r.benchmark?" vs "+esc(r.benchmark):""}</span>`:""}`; },
+  ideaNotes(it){ let h="";
+    const c=it.conditional;
+    if(c&&(c.ifHot||c.ifCool||c.trigger))h+=`<div class="fx-cond"><div class="fx-eyebrow">Conditional on ${esc(c.trigger||"the release")}</div>${c.ifHot?`<div class="fx-small"><b>If hot:</b> ${esc(c.ifHot)}</div>`:""}${c.ifCool?`<div class="fx-small"><b>If cool:</b> ${esc(c.ifCool)}</div>`:""}<div class="fx-small fx-muted">Levels are set after the release, once the first spike is known.</div></div>`;
+    if(it.activatedFrom)h+=`<div class="fx-small fx-muted">Activated from the morning watch ${esc(it.activatedFrom)}${it.quoteTime?` · quote ${esc(it.quoteTime)} UTC`:""}</div>`;
+    const v=(it.validation||[]).filter(n=>!/^switched to micro/.test(n));
+    const sw=(it.validation||[]).find(n=>/^switched to micro/.test(n));
+    if(v.length&&it.proposed)h+=`<div class="fx-valid"><b>Not published as a trade:</b> ${v.map(esc).join("; ")}.${it.proposed.entry!=null?` <span class="fx-muted">Proposed ${esc(it.proposed.direction)} ${esc(it.proposed.entry)} / stop ${esc(it.proposed.stop)} / target ${esc(it.proposed.target)}</span>`:""}</div>`;
+    else if(it.eligible)h+=`<div class="fx-small fx-muted">Checked: levels, 2:1 reward:risk, live ${esc(it.refSymbol||"")} quote${it.quoteTime?" "+esc(it.quoteTime)+" UTC":""}, score ≥ ${esc(it.hurdle??6)}${sw?" · "+esc(sw):""}</div>`;
+    return h; },
+  regimeLine(sc){ if(!sc.regimeGauge)return "";
+    const ov=sc.regimeOverride;
+    if(ov&&ov.reason&&sc.regime!==sc.regimeGauge)return `<div class="fx-override"><b>Brief overrides the gauge.</b> Gauge: ${esc(sc.regimeGauge)} → brief: ${esc(sc.regime)}. ${esc(ov.reason)}${(ov.sources||[]).length?` <span class="fx-muted">(${ov.sources.map(x=>x&&x.url&&/^https?:/i.test(x.url)?`<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title||"source")}</a>`:esc(x&&x.title||"")).join(", ")})</span>`:""}</div>`;
+    return `<span class="fx-small fx-muted">matches the macro gauge</span>`; }
+};
 window.MacroPanel=function(root,rg,pos){
   if(!root)return;
   if(!rg&&!pos){root.innerHTML="";return}
   let h="";
   if(rg){
     const s=rg.scores||{};
-    const groups={growth:"Growth",inflation:"Inflation",stress:"Financial stress",policy:"Policy"};
+    const groups={growth:"Growth",inflation:"Inflation",stress:"Financial stress",policy:"Policy",supporting:"Supporting (not scored)"};
     h+=`<section class="fx-panel"><div class="fx-head"><div><div class="fx-eyebrow">Macro regime &middot; updated ${day(rg.asOf)}</div><h2>${esc(rg.label)}</h2></div></div>
     <dl class="fx-tilt"><dt>Tends to favor</dt><dd>${esc(rg.favors)}</dd><dt>Tends to hurt</dt><dd>${esc(rg.hurts)}</dd></dl>
     ${(rg.flags||[]).length?`<div class="fx-flags">${rg.flags.map(f=>`<span class="fx-chip warn">${esc(f)}</span>`).join("")}</div>`:""}
@@ -484,6 +510,7 @@ function ideaTicket(it,scan){
     <div class="t-h"><span class="sym">${esc(it.contract)}</span><span class="chip ${dirCls(it.direction)}">${esc(it.direction||"–")}</span>${it.timeframe?`<span class="chip">${esc(it.timeframe)}</span>`:""}
       <div class="score"><b>${esc(it.score??"–")}</b>${g?`<span class="chip ${g}">${g}-setup</span>`:""}</div></div>
     <div class="t-b"><p>${esc(it.thesis)}</p>${it.catalyst?`<p class="small"><span class="eyebrow">Catalyst</span> ${esc(it.catalyst)}</p>`:""}
+      ${window.FX?FX.ideaNotes(it):""}
       <div class="levels"><div><span>Entry</span><b>${esc(it.entry??"–")}</b></div><div><span>Stop</span><b>${esc(it.stop??"–")}</b></div><div><span>Target</span><b>${esc(it.target??"–")}</b></div><div><span>R:R</span><b>${esc(it.rr??"–")}</b></div></div>
       ${resultHtml(OUTMAP[key])}</div>
     <div class="t-f">
@@ -503,11 +530,11 @@ function ideaTicket(it,scan){
 function tableHtml(head,rows){return rows.length?`<div class="tbl-wrap"><table><thead><tr>${head.map(h=>`<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`:""}
 function extras(s){
   let h="";
-  h+=tableHtml(["Release","Actual","Consensus","Prior","Surprise"],(s.releases||[]).map(r=>`<tr><td>${esc(r.event)}</td><td class="mono"><b>${esc(r.actual)}</b></td><td class="mono">${esc(r.consensus)}</td><td class="mono">${esc(r.prior)}</td><td>${esc(r.surprise)}</td></tr>`));
+  h+=tableHtml(["Release","Actual","Consensus","Prior","Surprise"],(s.releases||[]).map(r=>`<tr><td>${esc(r.event)}</td><td class="mono"><b>${esc(r.actual)}</b></td><td class="mono">${window.FX?FX.val(r.consensus):esc(r.consensus)}${r.nowcast?`<div class="small muted">Nowcast: ${FX.val(r.nowcast)}</div>`:""}</td><td class="mono">${esc(r.prior)}</td><td>${window.FX?FX.surprise(r):esc(r.surprise)}</td></tr>`));
   h+=tableHtml(["Market","Move","Read"],(s.reaction||[]).map(r=>`<tr><td class="mono"><b>${esc(r.symbol)}</b></td><td class="mono ${sgn(r.move)}">${esc(r.move)}</td><td class="small">${esc(r.note)}</td></tr>`));
   h+=tableHtml(["Sector","ETF","1 wk","1 mo","Rotation","Note"],(s.sectors||[]).map(r=>{const st=String(r.status||"").toLowerCase();const c=st.startsWith("lead")?"long":st.startsWith("lag")?"short":st.startsWith("improv")?"A":st.startsWith("weak")?"B":"";return `<tr><td>${esc(r.name)}</td><td class="mono"><b>${esc(r.etf)}</b></td><td class="num ${sgn(r.change1w)}">${esc(r.change1w)}</td><td class="num ${sgn(r.change1m)}">${esc(r.change1m)}</td><td><span class="chip ${c}">${esc(r.status)}</span></td><td class="small">${esc(r.note)}</td></tr>`}));
   h+=tableHtml(["Market","Last","Change","Note"],(s.snapshot||[]).map(r=>`<tr><td class="mono"><b>${esc(r.symbol)}</b></td><td class="num">${esc(r.last)}</td><td class="num ${sgn(r.change)}">${esc(r.change)}</td><td class="small">${esc(r.note)}</td></tr>`));
-  h+=tableHtml(["Day","ET","Release","Consensus","Prior","Impact"],(s.calendar||[]).map(c=>`<tr><td class="mono small">${esc(c.day)}</td><td class="mono small">${esc(c.time)}</td><td>${esc(c.event)}</td><td class="mono small">${esc(c.consensus)}</td><td class="mono small">${esc(c.prior)}</td><td>${esc(c.impact)}</td></tr>`));
+  h+=tableHtml(["Day","ET","Release","Consensus","Prior","Impact"],(s.calendar||[]).map(c=>`<tr><td class="mono small">${esc(c.day)}</td><td class="mono small">${esc(c.time)}</td><td>${esc(c.event)}</td><td class="mono small">${window.FX?FX.val(c.consensus):esc(c.consensus)}</td><td class="mono small">${esc(c.prior)}</td><td>${esc(c.impact)}</td></tr>`));
   return h;
 }
 function sources(s){const x=(s.sources||[]).filter(v=>safeUrl(v.url));return x.length?`<p class="note">Sources: ${x.map(v=>`<a href="${esc(safeUrl(v.url))}" target="_blank" rel="noopener">${esc(v.title||v.url)}</a>`).join(" · ")}</p>`:""}
@@ -515,7 +542,7 @@ function block(s,open){
   return `<div class="panel">
     <div><div class="eyebrow">${esc(KIND[s.kind]||"Brief")}${s.window?" · "+esc(s.window):""} · ${esc(s.date)}</div><p class="headline" style="margin-top:6px">${esc(s.headline||"")}</p></div>
     ${s.summary?`<p class="muted" style="max-width:72ch">${esc(s.summary)}</p>`:""}
-    ${s.regime||s.mode?`<div class="kv small">${s.regime?`<span><span class="eyebrow">Regime</span> <b>${esc(s.regime)}</b></span>`:""}${s.mode?`<span><span class="eyebrow">Mode</span> <b>${esc(s.mode)}</b></span>`:""}</div>`:""}
+    ${s.regime||s.mode?`<div class="kv small">${s.regime?`<span><span class="eyebrow">Regime</span> <b>${esc(s.regime)}</b></span>`:""}${s.mode?`<span><span class="eyebrow">Mode</span> <b>${esc(s.mode)}</b></span>`:""}${window.FX?FX.regimeLine(s):""}</div>`:""}
     ${(s.ideas||[]).length?`<div class="tickets">${s.ideas.map(i=>ideaTicket(i,s)).join("")}</div>`:""}
     ${(s.risks||[]).length?`<div><div class="eyebrow">Risks</div><ul class="plain small">${s.risks.map(r=>`<li>${esc(r)}</li>`).join("")}</ul></div>`:""}
     ${extras(s)}${sources(s)}</div>`;
