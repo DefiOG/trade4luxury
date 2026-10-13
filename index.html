@@ -186,6 +186,10 @@ td.mono.small{white-space:nowrap}
 .fx-curve polyline{fill:none;stroke-width:2;vector-effect:non-scaling-stroke}
 .fx-curve polyline.up{stroke:var(--long)} .fx-curve polyline.dn{stroke:var(--short)}
 .fx-curve .zero{stroke:var(--line-strong);stroke-dasharray:4 4;vector-effect:non-scaling-stroke}
+.fx-filters{display:grid;gap:10px}
+.fx-filter{display:grid;grid-template-columns:86px minmax(0,1fr);gap:10px;align-items:start}
+.fx-filter .fx-chip{justify-content:center}
+.fx-hurdles{max-width:360px}
 </style>
 </head>
 <body>
@@ -257,6 +261,8 @@ window.MacroPanel=function(root,rg,pos){
     <dl class="fx-tilt"><dt>Tends to favor</dt><dd>${esc(rg.favors)}</dd><dt>Tends to hurt</dt><dd>${esc(rg.hurts)}</dd></dl>
     ${(rg.flags||[]).length?`<div class="fx-flags">${rg.flags.map(f=>`<span class="fx-chip warn">${esc(f)}</span>`).join("")}</div>`:""}
     <div class="fx-gauges">${gauge("Growth",s.growth||0,-1,1,"Weakening","Strengthening")}${gauge("Inflation",s.inflation||0,-1,1,"Cooling","Heating up")}${gauge("Financial stress",s.stress||0,0,1,"Calm","Stressed")}</div>
+    ${(rg.filters||[]).length?`<div class="fx-filters"><div class="fx-eyebrow">Swing filters</div>${rg.filters.map(f=>`<div class="fx-filter"><span class="fx-chip ${f.state==="bearish"?"short":f.state==="bullish"?"long":f.state==="warning"?"warn":""}">${esc({bearish:"Bearish",bullish:"Bullish",warning:"Warning",off:"Quiet"}[f.state]||f.state)}</span><div><b>${esc(f.name)}</b> <span class="fx-muted fx-small">&middot; ${day(f.asOf&&f.asOf.length===6?f.asOf.slice(0,4)+"-"+f.asOf.slice(4)+"-01":f.asOf)}</span><div class="fx-small">${esc(f.text)}${f.detail?` <span class="fx-muted">${esc(f.detail)}</span>`:""}</div></div></div>`).join("")}</div>`:""}
+    ${rg.hurdles?(()=>{const H=rg.hurdles,B=[["equities","Stock indexes"],["bonds","Bond futures"],["industrials","Oil &amp; copper"]];const cell=k=>{const h=H[k];if(!h)return"<td>–</td>";return `<td class="fx-num fx-mono ${h.min<6?"fx-pos":h.min>6?"fx-neg":""}" title="${esc((h.why||[]).join("; "))}">${h.min}</td>`};const moved=Object.values(H).some(h=>h.min!==6);return `<div><div class="fx-eyebrow">Minimum score to send a setup</div><table class="fx-table fx-hurdles"><thead><tr><th></th><th class="fx-num">Long</th><th class="fx-num">Short</th></tr></thead><tbody>${B.map(([k,l])=>`<tr><td>${l}</td>${cell(k+" long")}${cell(k+" short")}</tr>`).join("")}</tbody></table><p class="fx-small fx-muted">${moved?"Green = easier because a filter agrees; red = harder because a filter disagrees.":"All at the normal 6 (a B-setup): no swing filter is active."}</p></div>`})():""}
     <details class="fx-more"><summary>The ${(rg.indicators||[]).length} indicators behind it</summary>
     <div class="fx-scroll"><table class="fx-table"><tbody>${(rg.indicators||[]).map(i=>`<tr><td class="fx-muted fx-small">${esc(groups[i.group]||i.group)}</td><td><b>${esc(i.name)}</b></td><td class="fx-mono">${esc(i.value)}</td><td>${i.group==="policy"?"":arrow(i.group==="stress"?-i.signal:i.group==="inflation"?-i.signal:i.signal)}</td><td class="fx-small">${esc(i.text)} <span class="fx-muted">· ${day(i.asOf)}</span></td></tr>`).join("")}</tbody></table></div>
     <p class="fx-small fx-muted">${esc(rg.method)} ▲ = good for the economy, ▼ = a worry.</p></details></section>`;
