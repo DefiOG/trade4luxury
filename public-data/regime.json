@@ -1,0 +1,216 @@
+{
+ "asOf": "2026-10-13",
+ "key": "mid",
+ "label": "Mid-cycle expansion",
+ "favors": "NQ/ES long, CL firm, dips bought",
+ "hurts": "Bonds (ZN/ZB)",
+ "scores": {
+  "growth": 0.29,
+  "inflation": -0.67,
+  "stress": 0
+ },
+ "flags": [],
+ "indicators": [
+  {
+   "group": "growth",
+   "name": "Jobless claims",
+   "value": "198k (4-wk avg)",
+   "signal": 0,
+   "text": "About the same as the last 6 months",
+   "asOf": "2026-10-03"
+  },
+  {
+   "group": "growth",
+   "name": "Unemployment rate",
+   "value": "4.2%",
+   "signal": 0,
+   "text": "Not rising meaningfully",
+   "asOf": "2026-09-01"
+  },
+  {
+   "group": "growth",
+   "name": "Payrolls",
+   "value": "+51k/mo (3-mo avg)",
+   "signal": 0,
+   "text": "Moderate hiring",
+   "asOf": "2026-09-01"
+  },
+  {
+   "group": "growth",
+   "name": "Industrial production",
+   "value": "+1.4% y/y",
+   "signal": 1,
+   "text": "Factories expanding",
+   "asOf": "2026-08-01"
+  },
+  {
+   "group": "growth",
+   "name": "Real retail sales",
+   "value": "+2.5% y/y after inflation",
+   "signal": 1,
+   "text": "Consumers spending more",
+   "asOf": "2026-08-01"
+  },
+  {
+   "group": "growth",
+   "name": "Building permits",
+   "value": "+4.2% y/y",
+   "signal": 0,
+   "text": "Housing pipeline steady",
+   "asOf": "2026-08-01"
+  },
+  {
+   "group": "growth",
+   "name": "Yield curve (10y − 2y)",
+   "value": "+0.44 pts",
+   "signal": 0,
+   "text": "Positive and steady",
+   "asOf": "2026-10-09"
+  },
+  {
+   "group": "inflation",
+   "name": "Core CPI",
+   "value": "2% (3-mo annualized), 2.8% y/y",
+   "signal": -1,
+   "text": "Cooling",
+   "asOf": "2026-08-01"
+  },
+  {
+   "group": "inflation",
+   "name": "Core PCE (Fed's gauge)",
+   "value": "2% (3-mo annualized), 3% y/y",
+   "signal": -1,
+   "text": "Near the Fed's 2% target",
+   "asOf": "2026-08-01"
+  },
+  {
+   "group": "inflation",
+   "name": "5-yr inflation expectations",
+   "value": "2.34%",
+   "signal": 0,
+   "text": "Anchored",
+   "asOf": "2026-10-09"
+  },
+  {
+   "group": "stress",
+   "name": "Junk-bond spreads",
+   "value": "3.15 pts (+0.44 in a month)",
+   "signal": 0,
+   "text": "Calm credit markets",
+   "asOf": "2026-10-08"
+  },
+  {
+   "group": "stress",
+   "name": "Financial conditions (Chicago Fed)",
+   "value": "-0.49",
+   "signal": 0,
+   "text": "Looser than average",
+   "asOf": "2026-10-02"
+  },
+  {
+   "group": "policy",
+   "name": "Fed funds rate",
+   "value": "3.88%",
+   "signal": 0,
+   "text": "Effective rate",
+   "asOf": "2026-10-08"
+  },
+  {
+   "group": "supporting",
+   "name": "Inventories-to-sales ratio",
+   "value": "1.30 (+0.00 in 3 months)",
+   "signal": 0,
+   "text": "Stable",
+   "asOf": "2026-07-01"
+  },
+  {
+   "group": "supporting",
+   "name": "Average weekly hours",
+   "value": "34.4 hrs (+0.1 in 3 months)",
+   "signal": 0,
+   "text": "Steady",
+   "asOf": "2026-09-01"
+  },
+  {
+   "group": "supporting",
+   "name": "Real consumer spending",
+   "value": "+4.1% (3-mo annualized, inflation-adjusted)",
+   "signal": 1,
+   "text": "Consumers spending more in real terms",
+   "asOf": "2026-08-01"
+  },
+  {
+   "group": "supporting",
+   "name": "Payroll revisions",
+   "value": "-60k to Jul-Aug",
+   "signal": -1,
+   "text": "Original vs. revised: the Jul-Aug job gains were first reported at 183k and now stand at 123k. Big downward revisions mean the labor market was weaker than it looked.",
+   "asOf": "2026-09-01"
+  }
+ ],
+ "method": "Supporting indicators (inventories-to-sales, weekly hours, real consumer spending, payroll revisions) are shown for context and are not part of the scores yet. Each indicator scores +1 / 0 / −1 (stress 0 to +1). Growth, inflation and stress are the averages. Growth ≤ −0.25 = slowdown; inflation ≥ +0.34 = late cycle; growth ≥ +0.25 = mid-cycle; in between, early recovery if claims are falling and the curve is steepening. Data: FRED, St. Louis Fed. Swing filters (Baumohl): sentiment vs. real retail sales (UMich, FRED), Fed Beige Book keyword counts vs. two reports earlier, freight (Cass shipments, ATA truck tonnage, BDRY dry-bulk ETF) and yield-curve steepening after inversion. Each active filter makes setups on its side easier (minimum score −1) and the other side harder (+1), from a base of 6.",
+ "filters": [
+  {
+   "key": "sentiment",
+   "name": "Sentiment vs. spending",
+   "state": "off",
+   "text": "Sentiment 49.5 → 51.7 over 2 months; real retail sales +1.0% over 3 months. No divergence.",
+   "asOf": "2026-08-01"
+  },
+  {
+   "key": "beige",
+   "name": "Fed Beige Book tone",
+   "state": "off",
+   "text": "Hawkish phrases 50 (+10% vs. 202605), dovish 24 (-26%), per 10k words. No big shift in tone.",
+   "detail": "Most frequent: hawkish price increases 37, shortages 7, wage pressures 6; dovish cautious outlook 8, slowing demand 6, layoffs 5.",
+   "asOf": "202608"
+  },
+  {
+   "key": "freight",
+   "name": "Freight and shipping",
+   "state": "off",
+   "text": "Cass shipments +1.9% y/y; truck tonnage -2.4% over 3 months; dry-bulk shipping (BDRY) -0% over 45 trading days. No sustained break.",
+   "asOf": "2026-09-01"
+  },
+  {
+   "key": "curve",
+   "name": "Yield curve",
+   "state": "off",
+   "text": "10y − 2y = +0.44; over 3 months the 2-year moved +0.54 and the 10-year +0.66. Not recently inverted.",
+   "asOf": "2026-10-09"
+  }
+ ],
+ "tilts": [],
+ "hurdles": {
+  "equities long": {
+   "min": 6,
+   "markets": "ES, NQ, RTY, YM and stock/sector ETFs",
+   "why": []
+  },
+  "equities short": {
+   "min": 6,
+   "markets": "ES, NQ, RTY, YM and stock/sector ETFs",
+   "why": []
+  },
+  "bonds long": {
+   "min": 6,
+   "markets": "ZT, ZF, ZN, ZB, UB",
+   "why": []
+  },
+  "bonds short": {
+   "min": 6,
+   "markets": "ZT, ZF, ZN, ZB, UB",
+   "why": []
+  },
+  "industrials long": {
+   "min": 6,
+   "markets": "CL, HG, heating oil",
+   "why": []
+  },
+  "industrials short": {
+   "min": 6,
+   "markets": "CL, HG, heating oil",
+   "why": []
+  }
+ }
+}
