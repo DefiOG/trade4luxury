@@ -14,6 +14,8 @@ A long/short idea is accepted only if:
   * ref matches the live snapshot quote for that contract within 1% (catches
     spot-vs-futures and wrong-unit levels) and the quote is recent;
   * entry is within 3 ATR of the live price;
+  * the stop sits beyond a nearby 20/50-day moving average (at least 0.25 ATR
+    past it), not just in front of it;
   * the score is a number and is at least the regime gauge's minimum score
     ("hurdle") for that bucket (default 6).
 Pre-market intraday ideas are always conditional watches: their stop depends on
@@ -108,6 +110,19 @@ def check_idea(it, scan, snap, hurdles, now):
                 notes.append(f"ref {ref:g} doesn't match the live {sym} quote {last:g} (spot or wrong units?)")
             if atr and abs(e - last) > 3 * atr:
                 notes.append(f"entry {e:g} is more than 3 ATR from the live price {last:g}")
+            # Stops must sit beyond nearby moving-average support/resistance, not just
+            # in front of it, where ordinary noise runs them (e.g. a long stop a few
+            # cents above the 20/50-day MA).
+            if atr and atr > 0 and sign * (e - s) > 0:
+                for label, ma in sorted((("20-day", num(q[2])), ("50-day", num(q[3]))), key=lambda x: abs(s - x[1]) if x[1] is not None else 1e18):
+                    if ma is None or not sign * (e - ma) > 0:
+                        continue  # MA isn't between price and the stop side
+                    near = sign * (s - ma) < 0.75 * atr  # MA within 0.75 ATR beyond the stop, or between stop and entry
+                    beyond = sign * (ma - s) >= 0.25 * atr  # stop at least 0.25 ATR past the MA
+                    if near and not beyond:
+                        want = ma - sign * 0.25 * atr
+                        notes.append(f"stop {s:g} sits in front of the {label} MA {ma:g}; put it beyond it (about {want:.4g}) and recheck reward:risk")
+                        break
             age = (now - qtime).total_seconds() / 3600 if qtime else None
             if age is None or age > MAX_QUOTE_AGE_H.get(kind, 36):
                 notes.append("quote is stale")
