@@ -221,6 +221,7 @@ td.mono.small{white-space:nowrap}
       <div class="meta"><span id="updated"></span><button class="btn ghost" id="lock" type="button">Lock</button></div>
       <nav class="tabs" role="tablist">
         <button role="tab" data-tab="today" aria-selected="true">Today</button>
+        <button role="tab" data-tab="options" aria-selected="false">Stock / Options</button>
         <button role="tab" data-tab="history" aria-selected="false">History</button>
         <button role="tab" data-tab="cheat" aria-selected="false">Cheat sheet</button>
         <button role="tab" data-tab="score" aria-selected="false">Scorecard</button>
@@ -231,6 +232,7 @@ td.mono.small{white-space:nowrap}
   </header>
   <main>
     <section id="v-today"></section>
+    <section id="v-options" hidden></section>
     <section id="v-history" hidden></section>
     <section id="v-cheat" hidden><div id="cheat"></div></section>
     <section id="v-score" hidden></section>
@@ -401,6 +403,7 @@ window.CheatSheet=function(root,m){
 })();
 
 </script>
+<script src="stock-options.js"></script>
 <script>
 (function(){
 "use strict";
@@ -497,7 +500,7 @@ document.addEventListener("submit",async e=>{
 });
 document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll("nav.tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
-  ["today","history","cheat","score","trades"].forEach(t=>$("#v-"+t).hidden=t!==b.dataset.tab);window.scrollTo(0,0);
+  ["today","options","history","cheat","score","trades"].forEach(t=>$("#v-"+t).hidden=t!==b.dataset.tab);window.scrollTo(0,0);
 }));
 
 /* ---------- rendering ---------- */
@@ -612,6 +615,7 @@ function renderScore(){
 function renderAll(){
   const d=new Date(FEED.generatedAt);$("#updated").textContent="Updated "+(isNaN(d)?"":d.toLocaleString(undefined,{weekday:"short",hour:"numeric",minute:"2-digit"}));
   renderToday();renderHistory();renderTrades();renderScore();
+  if(window.StockOptionsDesk)StockOptionsDesk.render($("#v-options"),FEED.optionsDesk);
   if(window.CheatSheet)window.CheatSheet(document.getElementById("cheat"),FEED.reactions||null);
 }
 
