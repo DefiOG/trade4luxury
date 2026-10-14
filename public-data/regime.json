@@ -1,12 +1,12 @@
 {
- "asOf": "2026-10-13",
+ "asOf": "2026-10-14",
  "key": "mid",
  "label": "Mid-cycle expansion",
  "favors": "NQ/ES long, CL firm, dips bought",
  "hurts": "Bonds (ZN/ZB)",
  "scores": {
   "growth": 0.29,
-  "inflation": -0.67,
+  "inflation": -0.33,
   "stress": 0
  },
  "flags": [],
@@ -46,7 +46,7 @@
   {
    "group": "growth",
    "name": "Real retail sales",
-   "value": "+2.5% y/y after inflation",
+   "value": "+1.9% y/y after inflation",
    "signal": 1,
    "text": "Consumers spending more",
    "asOf": "2026-08-01"
@@ -70,10 +70,10 @@
   {
    "group": "inflation",
    "name": "Core CPI",
-   "value": "2% (3-mo annualized), 2.8% y/y",
-   "signal": -1,
-   "text": "Cooling",
-   "asOf": "2026-08-01"
+   "value": "3.4% (3-mo annualized), 2.8% y/y",
+   "signal": 0,
+   "text": "Sticky, above target",
+   "asOf": "2026-09-01"
   },
   {
    "group": "inflation",
@@ -154,7 +154,7 @@
    "key": "sentiment",
    "name": "Sentiment vs. spending",
    "state": "off",
-   "text": "Sentiment 49.5 → 51.7 over 2 months; real retail sales +1.0% over 3 months. No divergence.",
+   "text": "Sentiment 49.5 → 51.7 over 2 months; real retail sales +0.8% over 3 months. No divergence.",
    "asOf": "2026-08-01"
   },
   {
@@ -169,7 +169,7 @@
    "key": "freight",
    "name": "Freight and shipping",
    "state": "off",
-   "text": "Cass shipments +1.9% y/y; truck tonnage -2.4% over 3 months; dry-bulk shipping (BDRY) -5% over 45 trading days. No sustained break.",
+   "text": "Cass shipments +1.9% y/y; truck tonnage -2.4% over 3 months; dry-bulk shipping (BDRY) -9% over 45 trading days. No sustained break.",
    "asOf": "2026-09-01"
   },
   {
