@@ -623,6 +623,18 @@ function resultHtml(o){
   const when=o.exit_on?` <span class="note">${esc(o.exit_on)}</span>`:o.filled_on?` <span class="note">since ${esc(o.filled_on)}</span>`:"";
   return `<div class="result"><span class="eyebrow">Result</span> <span class="chip ${cls}">${esc(label)}</span>${r}${when}${o.note?`<div class="note">${esc(o.note)}</div>`:""}</div>`;
 }
+function optionsLedgerHtml(){
+  const L=FEED&&FEED.optionsDesk&&FEED.optionsDesk.outcomes;const P=(L&&L.positions)||[];if(!P.length)return "";
+  const S=L.summary||{},usd=v=>v==null?"–":`<span class="${v>0?"pos":v<0?"neg":""}">${v>0?"+":""}${fmt$(v)}</span>`,pc=v=>v==null?"–":`<span class="${v>0?"pos":v<0?"neg":""}">${v>0?"+":""}${Math.round(v*100)}%</span>`;
+  const name=p=>`<b class="mono">${esc(p.ticker)}</b> <span class="mono small">${esc(p.strike)}${p.type==="put"?"P":"C"} ${esc(String(p.expiration||"").slice(5))}</span>`;
+  const tile=(l,v)=>`<div class="stat"><div class="eyebrow">${l}</div><b>${v}</b></div>`;
+  const open=P.filter(p=>p.status==="open"),closed=P.filter(p=>p.status!=="open");
+  const why={target:"Stock hit target",stop:"Stock hit invalidation",time:"Time exit",expired:"Expired"};
+  return `<div class="stats">${tile("Overall",usd((S.pnlClosed||0)+(S.pnlOpen||0)))}${tile("Closed",`${usd(S.pnlClosed)} <span class="note">(${S.closed||0})</span>`)}${tile("Open",`${usd(S.pnlOpen)} <span class="note">(${S.open||0})</span>`)}${tile("Win rate",S.win==null?"–":Math.round(S.win*100)+"%")}</div>
+  <div class="panel"><div class="panel-h"><h2>Open contracts</h2><span class="note">Bought at the ask, marked at the real bid</span></div>${open.length?tableHtml(["Contract","Opened","Paid","Bid now","Return","P&L"],open.map(p=>`<tr><td>${name(p)}</td><td class="mono small">${esc(p.entryDate)}</td><td class="num">$${(+p.entry).toFixed(2)}</td><td class="num">${p.mark!=null?"$"+(+p.mark).toFixed(2):"–"}</td><td class="num">${pc(p.retNow)}</td><td class="num">${usd(p.pnlNow)}</td></tr>`)):'<div class="empty">No open contracts.</div>'}</div>
+  <div class="panel"><div class="panel-h"><h2>Closed contracts</h2></div>${closed.length?tableHtml(["Contract","Closed","Why","Paid","Sold","Return","P&L"],closed.map(p=>`<tr><td>${name(p)}</td><td class="mono small">${esc(p.exitDate)}</td><td class="small">${esc(why[p.status]||p.status)}</td><td class="num">$${(+p.entry).toFixed(2)}</td><td class="num">$${(+p.exit).toFixed(2)}</td><td class="num">${pc(p.ret)}</td><td class="num">${usd(p.pnl)}</td></tr>`)):'<div class="empty">No closed contracts yet.</div>'}</div>
+  <p class="note" style="max-width:80ch">${esc(L.method||"")} P&amp;L is per contract (×100), no fees.</p>`;
+}
 let SCORE_DESK="futures";
 function renderScore(){
   const el=$("#v-score");
@@ -637,6 +649,7 @@ function renderScore(){
   const gradeLbl=k=>["A","B","C"].includes(k)?`<span class="chip ${k}">${k}-setup</span>`:esc(k);
   const c=s.counts||{},recent=(OUT.results||[]).filter(r=>!desks||deskOf(r)===SCORE_DESK).filter(r=>["target","stop","expired"].includes(r.status)).sort((a,b)=>String(b.exit_on).localeCompare(String(a.exit_on))).slice(0,15);
   const d=new Date(OUT.generatedAt);
+  if(desks&&SCORE_DESK==="options"&&optionsLedgerHtml()){el.innerHTML=pick+optionsLedgerHtml();el.querySelectorAll("[data-desk]").forEach(b=>b.addEventListener("click",()=>{SCORE_DESK=b.dataset.desk;renderScore()}));return}
   if(desks&&SCORE_DESK==="options"){el.innerHTML=pick+`<div class="panel"><div class="panel-h"><h2>Options scorecard</h2></div><p class="muted" style="max-width:72ch">No option contracts have been published yet, so there is nothing to grade. The first one appears when a setup passes the live-chain checks (tight bid/ask, open interest, delta 0.35–0.70, enough time to expiry).</p><p class="small" style="max-width:72ch"><b>How options will be graded:</b> paper entry at the <b>ask</b> when the contract is published; marked each evening at the contract's real <b>bid</b>; exit when the stock hits its stop or target, at a time stop, or at expiration, always at that day's real option price. Results show return on premium and paper P&amp;L per contract (×100), next to whether the stock call itself worked. Option results are never inferred from the stock's move.</p></div>`;el.querySelectorAll("[data-desk]").forEach(b=>b.addEventListener("click",()=>{SCORE_DESK=b.dataset.desk;renderScore()}));return}
   el.innerHTML=pick+`<div id="fx-paper"></div><div class="stats">${tile("Closed setups",o.n||0)}${tile("Win rate",pct(o.win))}${tile("Avg R per setup",o.n?fmtR(o.avgR):"–",o.avgR>0?"pos":o.avgR<0?"neg":"")}${tile("Total R",o.n?fmtR(o.totalR):"–",o.totalR>0?"pos":o.totalR<0?"neg":"")}</div>
   <p class="note">Right now: ${c.open||0} in a trade, ${c.waiting||0} waiting for entry, ${c.not_triggered||0} never triggered.</p>
