@@ -420,7 +420,7 @@ window.CheatSheet=function(root,m){
 const SUPABASE_URL="https://mlvqtbkqrcgrzkhphqmc.supabase.co";
 const SUPABASE_ANON_KEY="sb_publishable_YIIwZRrB44c3LVUlVkGa-A_Mi1X0O_Z";  // publishable key: safe to be public
 const LIVE=!!(SUPABASE_URL&&SUPABASE_ANON_KEY);
-const KIND={premarket:"Pre-market",adhoc:"Ad hoc",event:"Release reaction",sectors:"Sectors",weekly:"Week ahead",technical:"Technical"};
+const KIND={stocks:"Stock scan",premarket:"Pre-market",adhoc:"Ad hoc",event:"Release reaction",sectors:"Sectors",weekly:"Week ahead",technical:"Technical"};
 const $=s=>document.querySelector(s);
 const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const safeUrl=u=>/^https?:\/\//i.test(String(u||""))?String(u):"";
@@ -570,8 +570,8 @@ function renderToday(){
   window.MacroPanel&&MacroPanel($("#fx-macro"),FEED.regime,FEED.positioning);
 }
 function renderStocks(){
-  const secs=(FEED.scans||[]).filter(s=>s.kind==="sectors");
-  const intro=`<div class="panel"><div class="panel-h"><div><div class="eyebrow">Stocks &amp; ETFs desk</div><h2>Sector rotation</h2></div></div><p class="muted" style="max-width:72ch">Each weekday at 8:10 ET: which sectors are leading and lagging, how that fits the business cycle, and 1–3 sector ETF or stock ideas scored and graded the same way as the futures ideas (paper size 100 shares).</p></div>`;
+  const secs=(FEED.scans||[]).filter(s=>s.kind==="sectors"||s.kind==="stocks").sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
+  const intro=`<div class="panel"><div class="panel-h"><div><div class="eyebrow">Stocks &amp; ETFs desk</div><h2>Sector rotation &amp; stock scans</h2></div></div><p class="muted" style="max-width:72ch">Each weekday at 8:10 ET: which sectors are leading and lagging, how that fits the business cycle, and 1–3 sector ETF or stock ideas scored and graded the same way as the futures ideas (paper size 100 shares).</p></div>`;
   if(!secs.length){$("#v-stocks").innerHTML=intro+`<div class="empty">No sector scans yet. The next one arrives at 8:10 ET on the next trading day.</div>`;return}
   $("#v-stocks").innerHTML=intro+block(secs[0],true)+secs.slice(1).map(s=>block(s,false)).join("");
 }

@@ -78,7 +78,7 @@ def check_idea(it, scan, snap, hurdles, now):
     contract = re.sub(r"[^A-Z0-9]", "", str(it.get("contract", "")).upper())
     root = root_of(contract)
     is_future = root in PROXY
-    if not is_future and not (kind in ("sectors", "weekly") and TICKER.match(contract)):
+    if not is_future and not (kind in ("sectors", "weekly", "stocks") and TICKER.match(contract)):
         notes.append(f"unknown contract '{it.get('contract')}'")
     if is_future and root in MICRO:
         it["contract"], root = MICRO[root], MICRO[root]
