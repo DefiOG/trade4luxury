@@ -195,13 +195,18 @@ td.mono.small{white-space:nowrap}
 .fx-valid{font-size:13px;border-left:3px solid var(--short);padding:6px 10px;background:var(--short-soft);border-radius:4px;margin:6px 0}
 .fx-override{font-size:13px;border-left:3px solid var(--signal);padding:6px 10px;background:var(--signal-soft);border-radius:4px;margin-top:6px}
 /* FD-EXTRAS end */
+.seg{display:inline-flex;border:1px solid var(--line-strong,#B4C0CC);border-radius:6px;overflow:hidden}
+.seg button{background:none;border:0;padding:8px 14px;min-height:40px;font:inherit;font-size:14px;color:inherit;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line-strong,#B4C0CC)}
+.seg button[aria-pressed="true"]{background:var(--accent-soft,#DCE8F2);font-weight:700}
+nav.tabs{overflow-x:auto;scrollbar-width:none}
 </style>
 </head>
 <body>
 
 <div class="gate" id="gate">
   <div class="gate-card">
-    <div class="gate-top"><div class="eyebrow">Friends &amp; family</div><h1>Futures Desk</h1><p>Daily futures briefs, trade setups and sector rotation. Enter the access code you were given.</p></div>
+    <div class="gate-top"><div class="eyebrow">Friends &amp; family</div><h1>Trade for Luxury</h1><p>Daily futures briefs, trade setups and sector rotation. Enter the access code you were given.</p></div>
     <form id="unlock" autocomplete="off">
       <label for="code">Access code</label>
       <input id="code" type="password" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX" required>
@@ -217,10 +222,12 @@ td.mono.small{white-space:nowrap}
 <div id="app" hidden>
   <header class="top">
     <div class="top-in">
-      <h1>Futures Desk</h1>
+      <h1>Trade for Luxury</h1>
       <div class="meta"><span id="updated"></span><button class="btn ghost" id="lock" type="button">Lock</button></div>
       <nav class="tabs" role="tablist">
-        <button role="tab" data-tab="today" aria-selected="true">Today</button>
+        <button role="tab" data-tab="today" aria-selected="true">Futures</button>
+        <button role="tab" data-tab="stocks" aria-selected="false">Stocks &amp; ETFs</button>
+        <button role="tab" data-tab="options" aria-selected="false">Options</button>
         <button role="tab" data-tab="history" aria-selected="false">History</button>
         <button role="tab" data-tab="cheat" aria-selected="false">Cheat sheet</button>
         <button role="tab" data-tab="score" aria-selected="false">Scorecard</button>
@@ -231,6 +238,8 @@ td.mono.small{white-space:nowrap}
   </header>
   <main>
     <section id="v-today"></section>
+    <section id="v-stocks" hidden></section>
+    <section id="v-options" hidden></section>
     <section id="v-history" hidden></section>
     <section id="v-cheat" hidden><div id="cheat"></div></section>
     <section id="v-score" hidden></section>
@@ -401,6 +410,7 @@ window.CheatSheet=function(root,m){
 })();
 
 </script>
+<script src="stock-options.js"></script>
 <script>
 (function(){
 "use strict";
@@ -497,7 +507,7 @@ document.addEventListener("submit",async e=>{
 });
 document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll("nav.tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
-  ["today","history","cheat","score","trades"].forEach(t=>$("#v-"+t).hidden=t!==b.dataset.tab);window.scrollTo(0,0);
+  ["today","stocks","options","history","cheat","score","trades"].forEach(t=>$("#v-"+t).hidden=t!==b.dataset.tab);window.scrollTo(0,0);
 }));
 
 /* ---------- rendering ---------- */
@@ -555,10 +565,15 @@ function renderToday(){
   const parts=[];
   scans.filter(s=>s.kind==="event"&&s.date===brief.date).forEach(s=>parts.push(block(s)));
   parts.push(block(brief));
-  const sec=scans.find(s=>s.kind==="sectors");if(sec)parts.push(block(sec));
   const wk=scans.find(s=>s.kind==="weekly");if(wk)parts.push(`<details class="scan"><summary><span class="mono small muted">${esc(wk.date)}</span><span><b>Week ahead:</b> ${esc(wk.headline||"")}</span><span class="chip">Week ahead</span></summary><div class="body">${block(wk)}</div></details>`);
   $("#v-today").innerHTML=parts.join("")+fx;
   window.MacroPanel&&MacroPanel($("#fx-macro"),FEED.regime,FEED.positioning);
+}
+function renderStocks(){
+  const secs=(FEED.scans||[]).filter(s=>s.kind==="sectors");
+  const intro=`<div class="panel"><div class="panel-h"><div><div class="eyebrow">Stocks &amp; ETFs desk</div><h2>Sector rotation</h2></div></div><p class="muted" style="max-width:72ch">Each weekday at 8:10 ET: which sectors are leading and lagging, how that fits the business cycle, and 1–3 sector ETF or stock ideas scored and graded the same way as the futures ideas (paper size 100 shares).</p></div>`;
+  if(!secs.length){$("#v-stocks").innerHTML=intro+`<div class="empty">No sector scans yet. The next one arrives at 8:10 ET on the next trading day.</div>`;return}
+  $("#v-stocks").innerHTML=intro+block(secs[0],true)+secs.slice(1).map(s=>block(s,false)).join("");
 }
 function renderHistory(){
   const scans=FEED.scans||[];
@@ -589,29 +604,34 @@ function resultHtml(o){
   const when=o.exit_on?` <span class="note">${esc(o.exit_on)}</span>`:o.filled_on?` <span class="note">since ${esc(o.filled_on)}</span>`:"";
   return `<div class="result"><span class="eyebrow">Result</span> <span class="chip ${cls}">${esc(label)}</span>${r}${when}${o.note?`<div class="note">${esc(o.note)}</div>`:""}</div>`;
 }
+let SCORE_DESK="futures";
 function renderScore(){
   const el=$("#v-score");
   if(!OUT){el.innerHTML=`<div class="empty">The first results arrive after tonight's grading run, once setups have had time to play out.</div>`;return}
-  const s=OUT.summary||{},o=s.overall||{};
+  const all=OUT.summary||{},desks=all.desks||null,deskOf=r=>r.desk||(r.unit&&/share/.test(r.unit)?"stocks":"futures");
+  const s=desks?(desks[SCORE_DESK]||{}):all,o=s.overall||{};
+  const pick=desks?`<div class="seg" role="group" aria-label="Desk" style="margin-bottom:14px">${[["futures","Futures"],["stocks","Stocks &amp; ETFs"]].map(([k,l])=>`<button type="button" data-desk="${k}" aria-pressed="${SCORE_DESK===k}">${l}</button>`).join("")}</div>`:"";
   const tile=(l,v,c="")=>`<div class="stat"><div class="eyebrow">${l}</div><b class="${c}">${v}</b></div>`;
   const pct=x=>x==null?"–":Math.round(x*100)+"%";
   const rowsOf=(obj,label)=>Object.entries(obj||{}).filter(([,v])=>v.n).map(([k,v])=>`<tr><td>${label(k)}</td><td class="num">${v.n}</td><td class="num">${pct(v.win)}</td><td class="num ${v.avgR>0?"pos":v.avgR<0?"neg":""}">${fmtR(v.avgR)}</td><td class="num ${v.totalR>0?"pos":v.totalR<0?"neg":""}">${fmtR(v.totalR)}</td><td class="num ${v.pnl>0?"pos":v.pnl<0?"neg":""}">${v.pnl!=null?fmt$(v.pnl):"–"}</td></tr>`);
   const head=["","Closed","Win %","Avg R","Total R","Paper $"];
   const gradeLbl=k=>["A","B","C"].includes(k)?`<span class="chip ${k}">${k}-setup</span>`:esc(k);
-  const c=s.counts||{},recent=(OUT.results||[]).filter(r=>["target","stop","expired"].includes(r.status)).sort((a,b)=>String(b.exit_on).localeCompare(String(a.exit_on))).slice(0,15);
+  const c=s.counts||{},recent=(OUT.results||[]).filter(r=>!desks||deskOf(r)===SCORE_DESK).filter(r=>["target","stop","expired"].includes(r.status)).sort((a,b)=>String(b.exit_on).localeCompare(String(a.exit_on))).slice(0,15);
   const d=new Date(OUT.generatedAt);
-  el.innerHTML=`<div id="fx-paper"></div><div class="stats">${tile("Closed setups",o.n||0)}${tile("Win rate",pct(o.win))}${tile("Avg R per setup",o.n?fmtR(o.avgR):"–",o.avgR>0?"pos":o.avgR<0?"neg":"")}${tile("Total R",o.n?fmtR(o.totalR):"–",o.totalR>0?"pos":o.totalR<0?"neg":"")}</div>
+  el.innerHTML=pick+`<div id="fx-paper"></div><div class="stats">${tile("Closed setups",o.n||0)}${tile("Win rate",pct(o.win))}${tile("Avg R per setup",o.n?fmtR(o.avgR):"–",o.avgR>0?"pos":o.avgR<0?"neg":"")}${tile("Total R",o.n?fmtR(o.totalR):"–",o.totalR>0?"pos":o.totalR<0?"neg":"")}</div>
   <p class="note">Right now: ${c.open||0} in a trade, ${c.waiting||0} waiting for entry, ${c.not_triggered||0} never triggered.</p>
   <div class="panel"><div class="panel-h"><h2>By grade</h2><span class="note">If A-setups don't beat B-setups, the scoring needs work.</span></div>${tableHtml(head,rowsOf(s.byGrade,gradeLbl))||'<div class="empty">No closed setups yet.</div>'}</div>
   <div class="panel"><div class="panel-h"><h2>By market</h2></div>${tableHtml(head,rowsOf(s.byMarket,k=>`<b class="mono">${esc(k)}</b>`))||'<div class="empty">No closed setups yet.</div>'}</div>
   <div class="panel"><div class="panel-h"><h2>By timeframe</h2></div>${tableHtml(head,rowsOf(s.byTimeframe,esc))||'<div class="empty">No closed setups yet.</div>'}</div>
   ${recent.length?`<div class="panel"><div class="panel-h"><h2>Latest results</h2></div>${tableHtml(["Closed","Mkt","Dir","Grade","Result","R","Paper $"],recent.map(r=>`<tr><td class="mono small">${esc(r.exit_on)}</td><td class="mono"><b>${esc(r.contract)}</b></td><td><span class="chip ${dirCls(r.direction)}">${esc(r.direction)}</span></td><td>${r.grade?`<span class="chip ${esc(r.grade)}">${esc(r.grade)}</span>`:"–"}</td><td>${esc((RES[r.status]||[r.status])[0])}</td><td class="num ${r.r>0?"pos":"neg"}">${fmtR(r.r)}</td><td class="num ${r.pnl>0?"pos":r.pnl<0?"neg":""}">${r.pnl!=null?fmt$(r.pnl):"–"}</td></tr>`))}</div>`:""}
   <p class="note" style="max-width:80ch">How grading works: every setup with numeric levels is checked against real daily futures prices after each weekday close (stocks and ETFs against their own prices). If a day touches both the stop and the target, it counts as a stop, so results lean conservative. Paper dollars assume one contract per setup (100 shares for ETFs), no fees. Last graded ${isNaN(d)?"–":esc(d.toLocaleString(undefined,{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}))}. ${c.ungradable?`${c.ungradable} setup${c.ungradable>1?"s":""} aren't tracked because their levels were written as conditions rather than prices.`:""}</p>`;
-  window.PaperPanel&&PaperPanel($("#fx-paper"),OUT);
+  window.PaperPanel&&PaperPanel($("#fx-paper"),desks?Object.assign({},OUT,{summary:s}):OUT);
+  el.querySelectorAll("[data-desk]").forEach(b=>b.addEventListener("click",()=>{SCORE_DESK=b.dataset.desk;renderScore()}));
 }
 function renderAll(){
   const d=new Date(FEED.generatedAt);$("#updated").textContent="Updated "+(isNaN(d)?"":d.toLocaleString(undefined,{weekday:"short",hour:"numeric",minute:"2-digit"}));
-  renderToday();renderHistory();renderTrades();renderScore();
+  renderToday();renderStocks();renderHistory();renderTrades();renderScore();
+  if(window.StockOptionsDesk)StockOptionsDesk.render($("#v-options"),FEED.optionsDesk);
   if(window.CheatSheet)window.CheatSheet(document.getElementById("cheat"),FEED.reactions||null);
 }
 

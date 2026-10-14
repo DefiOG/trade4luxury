@@ -70,6 +70,9 @@ def build_feed(data: pathlib.Path, keep_days: int, include_trades: bool) -> dict
     scans = [s for s in load_dir(data / "scans") if str(s.get("date", "")) >= cutoff]
     scans.sort(key=lambda s: (str(s.get("date", "")), str(s.get("createdAt", ""))), reverse=True)
     trades = load_dir(data / "trades") if include_trades else []
+    # Separate stock/options collection (handoff, Oct 14): never fed to the futures grader.
+    options_scans = [s for s in load_dir(data / "stock_options" / "scans") if str(s.get("date", "")) >= cutoff]
+    options_scans.sort(key=lambda s: (str(s.get("date", "")), str(s.get("createdAt", ""))), reverse=True)
     # Economic cheat sheet (reaction map), exported from the dashboard's "reactions" collection.
     def one(folder, name):
         doc = {d["_id"]: d for d in load_dir(data / folder)}.get(name)
@@ -88,6 +91,7 @@ def build_feed(data: pathlib.Path, keep_days: int, include_trades: bool) -> dict
         "scans": scans,
         "reactions": rx,
         "outcomes": outcomes,
+        "optionsDesk": {"v": 1, "scans": options_scans},
         "regime": regime,
         "positioning": positioning,
         "trades": trades,

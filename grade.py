@@ -246,6 +246,7 @@ def run(items, bars_by_symbol):
             res["pnl_now"] = dollars(it["contract"], sign * (last - res["fill"]))
             res["risk"] = dollars(it["contract"], abs(e - st))
         res["unit"] = "contract" if root_of(it["contract"]) in POINT_VALUE else f"{SHARES} shares"
+        res["desk"] = desk_of(it["contract"])
         for f in ("fill", "exit"):
             if f in res:
                 res[f] = round(res[f], 4)
@@ -254,7 +255,7 @@ def run(items, bars_by_symbol):
     return out
 
 
-def scorecard(results):
+def _card(results):
     closed = [r for r in results if r.get("status") in ("target", "stop", "expired")]
 
     def agg(rows):
@@ -286,6 +287,18 @@ def scorecard(results):
              "best": max((r.get("pnl", 0) for r in closed), default=0), "worst": min((r.get("pnl", 0) for r in closed), default=0)}
     return {"overall": agg(closed), "paper": paper, "byGrade": by("grade"), "byMarket": by("contract", lambda c: micro.get(root_of(c), root_of(c))),
             "byTimeframe": by("timeframe"), "counts": counts}
+
+
+def desk_of(contract) -> str:
+    """Futures contracts belong to the Futures Desk; stocks and ETFs to the Stocks & ETFs desk."""
+    return "futures" if root_of(str(contract or "").upper()) in PROXY else "stocks"
+
+
+def scorecard(results):
+    """Combined card (kept for older pages) plus one card per desk."""
+    card = _card(results)
+    card["desks"] = {d: _card([r for r in results if desk_of(r.get("contract")) == d]) for d in ("futures", "stocks")}
+    return card
 
 
 def load_prices(path: pathlib.Path) -> dict:
