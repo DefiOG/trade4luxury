@@ -76,6 +76,34 @@ FETCH_JS = r"""await (async () => {
   }
   return JSON.stringify({ bars: out, n, check: +sum.toFixed(4) });
 })()"""
+# Second pass: for days a daily bar can't settle, replay that day's 5-minute bars in the
+# browser and report which came first after the fill: the stop, the target, or neither.
+RESOLVE_JS = r"""await (async () => {
+  const cases = __CASES__, out = {};
+  for (const c of cases) {
+    try {
+      const d = Date.parse(c.date + "T00:00:00Z"), p1 = Math.floor((d - 26 * 3600e3) / 1000), p2 = Math.floor((d + 22 * 3600e3) / 1000);
+      const x = (await (await fetch("https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(c.sym) + "?interval=5m&period1=" + p1 + "&period2=" + p2)).json()).chart.result[0];
+      const q = x.indicators.quote[0], day = c.date, rows = [];
+      x.timestamp.forEach((t, i) => { if (q.high[i] == null || q.low[i] == null) return;
+        const et = new Date((t + x.meta.gmtoffset) * 1000), dd = et.toISOString().slice(0, 10), hh = et.getUTCHours();
+        // futures session for day D runs from 18:00 ET on D-1 to 17:00 ET on D; stocks trade inside D
+        const prev = new Date(d - 864e5).toISOString().slice(0, 10);
+        if ((dd === day && hh < 17) || (dd === prev && hh >= 18)) rows.push([t, q.high[i], q.low[i]]); });
+      if (!rows.length) { out[c.key + "|" + c.date] = "ERR no 5m bars"; continue; }
+      let i = 0, filled = !c.fillDay, v = "none";
+      if (!filled) for (; i < rows.length; i++) { const [, h, l] = rows[i];
+        const touch = c.mode === "breakout" ? (c.dir > 0 ? h >= c.entry : l <= c.entry) : (c.dir > 0 ? l <= c.entry : h >= c.entry);
+        if (touch) { filled = true; break; } }
+      if (!filled) { out[c.key + "|" + c.date] = "nofill"; continue; }
+      for (; i < rows.length; i++) { const [, h, l] = rows[i];
+        const s = c.dir > 0 ? l <= c.stop : h >= c.stop, g = c.dir > 0 ? h >= c.target : l <= c.target;
+        if (s) { v = "stop"; break; } if (g) { v = "target"; break; } }
+      out[c.key + "|" + c.date] = v;
+    } catch (e) { out[c.key + "|" + c.date] = "ERR " + e.message; }
+  }
+  return JSON.stringify(out);
+})()"""
 FUTURES_ROOTS = set(PROXY)
 
 # Dollars per 1.00 move in the Yahoo quote, for ONE contract of the named root.
@@ -133,8 +161,13 @@ def grade_of(score):
 
 
 # ---------------------------------------------------------------- engine
-def simulate(bars, scan_date, direction, timeframe, entry, stop, target):
-    """Return dict(status, r, filled_on, exit_on, fill, exit) on proxy-scale levels."""
+def simulate(bars, scan_date, direction, timeframe, entry, stop, target, resolve=None, want=None):
+    """Return dict(status, r, filled_on, exit_on, fill, exit) on proxy-scale levels.
+
+    A daily bar can't show whether the fill or the stop/target came first. Those days
+    are listed in `want` (date, case); `resolve` maps date -> "stop" | "target" | "none",
+    the order seen on 5-minute bars (see RESOLVE_JS). Without a verdict the conservative
+    daily rule applies (the stop wins)."""
     sign = 1 if direction == "long" else -1
     tf = timeframe if timeframe in FILL_WINDOW else "swing"
     after = [b for b in bars if b["d"] >= scan_date]
@@ -164,7 +197,20 @@ def simulate(bars, scan_date, direction, timeframe, entry, stop, target):
     for j, b in enumerate(held):
         adverse = b["l"] if sign > 0 else b["h"]
         favorable = b["h"] if sign > 0 else b["l"]
-        if sign * (adverse - stop) <= 0:
+        hit_stop, hit_tgt = sign * (adverse - stop) <= 0, sign * (favorable - target) >= 0
+        ambiguous = (j == 0 and (hit_stop or (hit_tgt and tf != "intraday"))) or (j > 0 and hit_stop and hit_tgt)
+        verdict = (resolve or {}).get(b["d"]) if ambiguous else None
+        if ambiguous and verdict is None and want is not None:
+            want.append({"date": b["d"], "fillDay": j == 0, "mode": "breakout" if breakout else "pullback"})
+        if verdict == "none":
+            continue
+        if verdict == "target":
+            px = target if j == 0 else (max(target, b["o"]) if sign > 0 else min(target, b["o"]))
+            return {"status": "target", "r": round(rr(px), 2), "filled_on": after[fill_i]["d"], "exit_on": b["d"], "fill": fill, "exit": px, "checked": "5m"}
+        if verdict == "stop":
+            px = stop if j == 0 else (min(stop, b["o"]) if sign > 0 else max(stop, b["o"]))
+            return {"status": "stop", "r": round(rr(px), 2), "filled_on": after[fill_i]["d"], "exit_on": b["d"], "fill": fill, "exit": px, "checked": "5m"}
+        if hit_stop:
             px = min(stop, b["o"]) if sign > 0 else max(stop, b["o"])
             if j == 0:
                 px = stop  # filled and stopped the same bar: assume the stop price
@@ -214,7 +260,7 @@ def plan(feed):
     return items
 
 
-def run(items, bars_by_symbol):
+def run(items, bars_by_symbol, resolutions=None, wants=None):
     out = []
     for it in items:
         if "proxy" not in it:
@@ -236,7 +282,13 @@ def run(items, bars_by_symbol):
                 k = prior[-1]["c"] / it["ref"]
                 if 0.8 < k < 1.25:  # ignore nonsense refs (wrong units)
                     e, st, t = e * k, st * k, t * k
-        res.update(simulate(bars, it["start"], it["direction"], it["timeframe"], e, st, t))
+        resolve = {k.split("|")[-1]: v for k, v in (resolutions or {}).items() if k.rsplit("|", 1)[0] == it["key"]}
+        want = []
+        res.update(simulate(bars, it["start"], it["direction"], it["timeframe"], e, st, t, resolve, want))
+        if wants is not None:
+            for w in want:
+                wants.append({**w, "key": it["key"], "sym": it["proxy"], "dir": 1 if it["direction"] == "long" else -1,
+                              "entry": e, "stop": st, "target": t})
         sign = 1 if it["direction"] == "long" else -1
         if "exit" in res:
             res["pnl"] = dollars(it["contract"], sign * (res["exit"] - res["fill"]))
@@ -329,6 +381,8 @@ def main() -> int:
     p.add_argument("--data", help="Plain journal export folder (holding scans/). No access code needed.")
     p.add_argument("--fetch-script", action="store_true", help="Print the browser script that fetches the prices needed, then exit")
     p.add_argument("--prices", help="Price file written from the browser script's result")
+    p.add_argument("--resolve-script", action="store_true", help="With --prices: print the browser script that checks unclear days on 5-minute bars (or NO_UNCLEAR_DAYS), then exit")
+    p.add_argument("--resolutions", help="File written from the resolve script's result")
     p.add_argument("--out", help="Encrypted outcomes file (legacy; the Action now encrypts outcomes inside the feed)")
     p.add_argument("--plain", action="store_true", help="Write unencrypted JSON (testing only)")
     p.add_argument("--plain-out", help="Also write an unencrypted copy here (for the private dashboard)")
@@ -355,9 +409,19 @@ def main() -> int:
         p.error("pass --prices (or --fetch-script to get the browser script)")
     bars = load_prices(pathlib.Path(a.prices))
 
-    results = run(items, bars)
+    resolutions = {}
+    if a.resolutions:
+        raw = json.loads(pathlib.Path(a.resolutions).read_text())
+        raw = json.loads(raw) if isinstance(raw, str) else raw
+        resolutions = {k: v for k, v in raw.items() if v in ("stop", "target", "none")}
+    wants = []
+    results = run(items, bars, resolutions, wants)
+    if a.resolve_script:
+        cases = [w for w in wants if (dt.date.today() - dt.date.fromisoformat(w["date"])).days <= 55]
+        print(RESOLVE_JS.replace("__CASES__", json.dumps(cases)) if cases else "NO_UNCLEAR_DAYS")
+        return 0
     doc = {"v": 1, "generatedAt": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
-           "method": "Paper trades graded on real daily futures prices (Yahoo continuous front month; ETFs and stocks by ticker). One contract (or 100 shares) per idea. Stop counted first when stop and target fall in the same bar.",
+           "method": "Paper trades graded on real daily futures prices (Yahoo continuous front month; ETFs and stocks by ticker). One contract (or 100 shares) per idea. When a daily bar can't show whether the fill, stop or target came first, the day is replayed on 5-minute bars; if that isn't available the stop is counted first.",
            "results": results, "summary": scorecard(results)}
     if a.out:
         if len(norm(code)) < 12 and not a.plain:
