@@ -299,6 +299,9 @@ def run(items, bars_by_symbol, resolutions=None, wants=None):
             res["risk"] = dollars(it["contract"], abs(e - st))
         res["unit"] = "contract" if root_of(it["contract"]) in POINT_VALUE else f"{SHARES} shares"
         res["desk"] = desk_of(it["contract"])
+        res["plan"] = {"entry": round(e, 6), "stop": round(st, 6), "target": round(t, 6)}
+        if res.get("status") == "open":
+            res["last"] = [b for b in bars if b["d"] >= it["start"]][-1]["c"]
         for f in ("fill", "exit"):
             if f in res:
                 res[f] = round(res[f], 4)
