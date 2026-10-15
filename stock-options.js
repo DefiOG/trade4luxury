@@ -10,6 +10,40 @@ const states=["watching","armed","triggered","invalidated","expired"];
 function timing(basis){
   return basis==="weekly"?"4–8 weeks":basis==="intraday"?"Weekly: aggressive momentum only":"2–4 weeks";
 }
+function spreadCheck(it,now){
+  const s=it&&it.creditSpread,why=[];
+  if(!s||typeof s!=="object")return {ok:false,why:["No spread published"],credit:null,width:null,maxLoss:null};
+  const sh=s.short||{},lg=s.long||{},put=s.type==="put_credit";
+  if(s.type!==(it.bias==="bullish"?"put_credit":"call_credit"))why.push("Spread type must match the bias (bullish: put credit, bearish: call credit)");
+  const at=stamp(s.verifiedAt),expiry=Date.parse(String(s.expiration)+"T16:00:00-04:00"),days=(expiry-now)/86400000;
+  if(!(/^\d{4}-\d\d-\d\d$/.test(s.expiration||"")&&expiry>now))why.push("Invalid expiration");
+  else if(days<7||days>45)why.push("Expiry must be 7 to 45 days out");
+  if(!(Number.isFinite(at)&&at<=now&&now-at<=90000))why.push("Chain quotes are not fresh");
+  if(!s.source)why.push("Missing data source");
+  if(!(finite(s.underlyingPrice)&&s.underlyingPrice>0))why.push("Missing underlying price");
+  const legOk=l=>finite(l.strike)&&l.strike>0&&finite(l.bid)&&l.bid>=0&&finite(l.ask)&&l.ask>0&&l.ask>=l.bid&&finite(l.openInterest)&&l.openInterest>=100&&typeof l.instrumentId==="string"&&l.instrumentId;
+  if(!legOk(sh)||!legOk(lg))why.push("Both legs need quotes, open interest of 100+ and an instrument id");
+  const width=legOk(sh)&&legOk(lg)?Math.abs(sh.strike-lg.strike):NaN;
+  if(Number.isFinite(width)){
+    if(put?!(lg.strike<sh.strike):!(lg.strike>sh.strike))why.push("Long leg must be further out of the money than the short leg");
+    if(!(width>0&&width<=Math.max(5,0.02*(s.underlyingPrice||0))))why.push("Spread is too wide");
+    const tight=l=>(l.ask-l.bid)<=Math.max(0.1,0.1*(l.ask+l.bid)/2);
+    if(!tight(sh)||!tight(lg))why.push("A leg's bid/ask is too wide");
+    if(!(sh.bid>0))why.push("Short leg has no bid");
+    if(finite(it.invalidation)&&(put?sh.strike>it.invalidation:sh.strike<it.invalidation))why.push("Short strike must sit beyond the stock's invalidation level");
+  }
+  if(!(finite(sh.delta)&&Math.abs(sh.delta)>=0.10&&Math.abs(sh.delta)<=0.30&&Math.sign(sh.delta)===(put?-1:1)))why.push("Short delta must be 0.10 to 0.30");
+  if(!(finite(sh.iv)&&sh.iv>0))why.push("Missing implied volatility");
+  if(!(finite(sh.volume)&&sh.volume>0))why.push("Short leg has no volume today");
+  if(!(typeof s.catalystCheck==="string"&&s.catalystCheck.trim()))why.push("Missing earnings/catalyst check");
+  const credit=finite(sh.bid)&&finite(lg.ask)?+(sh.bid-lg.ask).toFixed(2):null;
+  if(Number.isFinite(width)&&credit!=null){
+    if(!(credit>0&&credit<width))why.push("Credit must be positive and below the width");
+    else if(credit<width*0.2)why.push("Credit is under 20% of the width");
+  }
+  const maxLoss=Number.isFinite(width)&&credit!=null?+(width-credit).toFixed(2):null;
+  return {ok:!why.length,why,credit,width:Number.isFinite(width)?width:null,maxLoss};
+}
 function check(it,now=Date.now()){
   const issues=[];
   if(!it||typeof it!=="object")return {status:"watching",issues:["Missing setup"],chainReady:false,rr:null};
@@ -26,7 +60,7 @@ function check(it,now=Date.now()){
   const reward=Array.isArray(it.targets)?d*(it.targets[0]-it.trigger):NaN;
   const rr=risk>0&&reward>0?reward/risk:null;
   if(rr==null)issues.push("Levels do not match direction");
-  else if(rr<2)issues.push("First target offers less than 2:1");
+  else if(rr<2&&it.lane!=="credit")issues.push("First target offers less than 2:1");
   if(Array.isArray(it.targets)&&it.targets.some((v,i)=>i>0&&d*(v-it.targets[i-1])<=0))issues.push("Targets must follow price direction");
   let status=states.includes(it.status)?it.status:"watching";
   const q=it.quote||{},qt=stamp(q.at),fresh=finite(q.price)&&q.price>0&&q.feed==="realtime"&&Number.isFinite(qt)&&qt<=now&&now-qt<=90000;
@@ -39,7 +73,7 @@ function check(it,now=Date.now()){
       issues.push("Activation requires a completed-bar trigger, real-time quote and timestamped fill reference");
     }
     const actualRisk=d*(a.entry-it.invalidation),actualReward=d*((it.targets||[])[0]-a.entry);
-    if(!(actualRisk>0&&actualReward>0&&actualReward/actualRisk>=2))issues.push("Activation entry must still offer 2:1");
+    if(!(actualRisk>0&&actualReward>0&&(it.lane==="credit"||actualReward/actualRisk>=2)))issues.push("Activation entry must still offer 2:1");
   }
   if(issues.length&&["armed","triggered"].includes(status))status="watching";
   const c=it.optionCandidate;
@@ -62,8 +96,9 @@ function check(it,now=Date.now()){
       if(it.basis==="weekly"&&days<28)chainReady=false;
     }
   }
-  if(issues.length||["invalidated","expired"].includes(status))chainReady=false;
-  return {status,issues,chainReady,rr,fresh};
+  const spread=it.lane==="credit"?spreadCheck(it,now):null;
+  if(issues.length||["invalidated","expired"].includes(status)){chainReady=false;if(spread)spread.ok=false}
+  return {status,issues,chainReady,rr,fresh,spread};
 }
 function candidate(it,checked){
   const c=it.optionCandidate;
@@ -73,6 +108,15 @@ function candidate(it,checked){
     '<br>IV '+esc((c.iv*100).toFixed(1))+'% · delta '+esc(c.delta.toFixed(2))+
     '<br><span class="note">Source: '+esc(c.source)+' · '+esc(c.verifiedAt)+' · '+esc(c.catalystCheck)+
     '. Recheck the live chain before trading. Premium is quoted per share.</span></div>';
+}
+function spreadBlock(it,v){
+  const s=it.creditSpread;if(it.lane!=="credit")return "";
+  if(!s)return '<p class="small muted"><b>Credit spread:</b> no spread published yet.</p>';
+  const sp=v.spread||{},sh=s.short||{},lg=s.long||{},put=s.type==="put_credit",k=put?"P":"C";
+  return '<div class="small"><b>'+(put?"Put":"Call")+' credit spread:</b> sell '+cash(sh.strike)+k+' / buy '+cash(lg.strike)+k+' · exp '+esc(s.expiration)+
+    '<br>'+(sp.credit!=null?'Credit '+cash(sp.credit)+' · max loss '+cash(sp.maxLoss)+' (per share, ×100 per spread)':'')+
+    ' · short delta '+esc(finite(sh.delta)?sh.delta.toFixed(2):"–")+
+    (sp.ok?'<br><span class="pos">Passes the spread checks.</span>':'<br><span class="note">Not published as a trade: '+(sp.why||[]).map(esc).join("; ")+'.</span>')+'</div>';
 }
 function ticket(it,now){
   const v=check(it,now),side=it.bias==="bearish"?"put":"call",disabled=["invalidated","expired"].includes(v.status);
@@ -88,7 +132,7 @@ function ticket(it,now){
     (v.status==="triggered"?'<p class="small"><b>Trigger recorded:</b> '+esc(it.activation.at)+' at underlying '+cash(it.activation.entry)+'. This is a recorded trigger, not a current entry quote.</p>':"")+
     '<details><summary class="small">Timeframe read</summary><p class="small">Weekly: '+esc(it.timeframeRead?.weekly||"Missing")+
     '<br>Daily: '+esc(it.timeframeRead?.daily||"Missing")+'<br>Intraday: '+esc(it.timeframeRead?.intraday||"Missing")+'</p></details>'+
-    candidate(it,v)+'<p class="note">'+esc(it.riskNote||"If the underlying loses invalidation, the setup is dead. Option premium can fall even when the stock moves favorably.")+'</p>'+
+    (it.lane==='credit'?spreadBlock(it,v):candidate(it,v))+'<p class="note">'+esc(it.riskNote||"If the underlying loses invalidation, the setup is dead. Option premium can fall even when the stock moves favorably.")+'</p>'+
     (disabled?'<p class="small neg">This setup is '+esc(v.status)+'.</p>':"")+
     (v.issues.length?'<p class="note">Watching: '+v.issues.map(esc).join("; ")+'.</p>':"")+
     '<p class="note">Underlying quote: '+cash(it.quote?.price)+' · '+esc(it.quote?.at||"No timestamp")+' · '+esc(it.quote?.source||"No source")+
@@ -115,5 +159,5 @@ function render(el,desk,now=Date.now()){
   const filter=el.querySelector("#so-filter");
   if(filter)filter.addEventListener("change",()=>{el.querySelector("#so-tickets").innerHTML=ideas.filter(it=>filter.value==="all"||it.bias===filter.value).map(it=>ticket(it,Date.now())).join("")});
 }
-root.StockOptionsDesk={check,timing,render};
+root.StockOptionsDesk={check,spreadCheck,timing,render};
 })(typeof window!=="undefined"?window:globalThis);

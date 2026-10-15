@@ -676,14 +676,24 @@ function resultHtml(o){
 function optionsLedgerHtml(){
   const L=FEED&&FEED.optionsDesk&&FEED.optionsDesk.outcomes;const P=(L&&L.positions)||[];if(!P.length)return "";
   const S=L.summary||{},usd=v=>v==null?"–":`<span class="${v>0?"pos":v<0?"neg":""}">${v>0?"+":""}${fmt$(v)}</span>`,pc=v=>v==null?"–":`<span class="${v>0?"pos":v<0?"neg":""}">${v>0?"+":""}${Math.round(v*100)}%</span>`;
-  const name=p=>`<b class="mono">${esc(p.ticker)}</b> <span class="mono small">${esc(p.strike)}${p.type==="put"?"P":"C"} ${esc(String(p.expiration||"").slice(5))}</span>`;
+  const isSp=p=>p.kind==="credit_spread";
+  const name=p=>isSp(p)?`<b class="mono">${esc(p.ticker)}</b> <span class="mono small">${esc(p.strike)}/${esc(p.longStrike)}${p.type==="put_credit"?"P":"C"} ${esc(String(p.expiration||"").slice(5))}</span><div class="note">${p.type==="put_credit"?"Put":"Call"} credit spread</div>`:`<b class="mono">${esc(p.ticker)}</b> <span class="mono small">${esc(p.strike)}${p.type==="put"?"P":"C"} ${esc(String(p.expiration||"").slice(5))}</span>`;
   const tile=(l,v)=>`<div class="stat"><div class="eyebrow">${l}</div><b>${v}</b></div>`;
-  const open=P.filter(p=>p.status==="open"),closed=P.filter(p=>p.status!=="open");
-  const why={target:"Stock hit target",stop:"Stock hit invalidation",time:"Time exit",expired:"Expired"};
+  const D=P.filter(p=>!isSp(p)),C=P.filter(isSp);
+  const why={target:"Stock hit target",stop:"Stock hit invalidation",time:"Time exit",expired:"Expired",profit:"Took half the credit"};
+  const tbl=(rows,openHdr,closedHdr,openRow,closedRow,title,sub)=>{
+    if(!rows.length)return "";const o=rows.filter(p=>p.status==="open"),c=rows.filter(p=>p.status!=="open");
+    return `<div class="panel"><div class="panel-h"><h2>Open ${title}</h2><span class="note">${sub}</span></div>${o.length?tableHtml(openHdr,o.map(openRow)):'<div class="empty">None open.</div>'}</div>
+    <div class="panel"><div class="panel-h"><h2>Closed ${title}</h2></div>${c.length?tableHtml(closedHdr,c.map(closedRow)):'<div class="empty">None closed yet.</div>'}</div>`};
+  const dir=tbl(D,["Contract","Opened","Paid","Bid now","Return","P&L"],["Contract","Closed","Why","Paid","Sold","Return","P&L"],
+    p=>`<tr><td>${name(p)}</td><td class="mono small">${esc(p.entryDate)}</td><td class="num">$${(+p.entry).toFixed(2)}</td><td class="num">${p.mark!=null?"$"+(+p.mark).toFixed(2):"–"}</td><td class="num">${pc(p.retNow)}</td><td class="num">${usd(p.pnlNow)}</td></tr>`,
+    p=>`<tr><td>${name(p)}</td><td class="mono small">${esc(p.exitDate)}</td><td class="small">${esc(why[p.status]||p.status)}</td><td class="num">$${(+p.entry).toFixed(2)}</td><td class="num">$${(+p.exit).toFixed(2)}</td><td class="num">${pc(p.ret)}</td><td class="num">${usd(p.pnl)}</td></tr>`,"contracts","Bought at the ask, marked at the real bid");
+  const spr=tbl(C,["Spread","Opened","Credit","Cost to close","Max loss","Return on risk","P&L"],["Spread","Closed","Why","Credit","Cost to close","Return on risk","P&L"],
+    p=>`<tr><td>${name(p)}</td><td class="mono small">${esc(p.entryDate)}</td><td class="num">$${(+p.entry).toFixed(2)}</td><td class="num">${p.mark!=null?"$"+(+p.mark).toFixed(2):"–"}</td><td class="num">$${(+p.maxLoss).toFixed(2)}</td><td class="num">${pc(p.retNow)}</td><td class="num">${usd(p.pnlNow)}</td></tr>`,
+    p=>`<tr><td>${name(p)}</td><td class="mono small">${esc(p.exitDate)}</td><td class="small">${esc(why[p.status]||p.status)}</td><td class="num">$${(+p.entry).toFixed(2)}</td><td class="num">$${(+p.exit).toFixed(2)}</td><td class="num">${pc(p.ret)}</td><td class="num">${usd(p.pnl)}</td></tr>`,"credit spreads","Credit collected at the natural price; valued at what it would cost to close");
   return `<div class="stats">${tile("Overall",usd((S.pnlClosed||0)+(S.pnlOpen||0)))}${tile("Closed",`${usd(S.pnlClosed)} <span class="note">(${S.closed||0})</span>`)}${tile("Open",`${usd(S.pnlOpen)} <span class="note">(${S.open||0})</span>`)}${tile("Win rate",S.win==null?"–":Math.round(S.win*100)+"%")}</div>
-  <div class="panel"><div class="panel-h"><h2>Open contracts</h2><span class="note">Bought at the ask, marked at the real bid</span></div>${open.length?tableHtml(["Contract","Opened","Paid","Bid now","Return","P&L"],open.map(p=>`<tr><td>${name(p)}</td><td class="mono small">${esc(p.entryDate)}</td><td class="num">$${(+p.entry).toFixed(2)}</td><td class="num">${p.mark!=null?"$"+(+p.mark).toFixed(2):"–"}</td><td class="num">${pc(p.retNow)}</td><td class="num">${usd(p.pnlNow)}</td></tr>`)):'<div class="empty">No open contracts.</div>'}</div>
-  <div class="panel"><div class="panel-h"><h2>Closed contracts</h2></div>${closed.length?tableHtml(["Contract","Closed","Why","Paid","Sold","Return","P&L"],closed.map(p=>`<tr><td>${name(p)}</td><td class="mono small">${esc(p.exitDate)}</td><td class="small">${esc(why[p.status]||p.status)}</td><td class="num">$${(+p.entry).toFixed(2)}</td><td class="num">$${(+p.exit).toFixed(2)}</td><td class="num">${pc(p.ret)}</td><td class="num">${usd(p.pnl)}</td></tr>`)):'<div class="empty">No closed contracts yet.</div>'}</div>
-  <p class="note" style="max-width:80ch">${esc(L.method||"")} P&amp;L is per contract (×100), no fees.</p>`;
+  ${spr}${dir}
+  <p class="note" style="max-width:80ch">${esc(L.method||"")} P&amp;L is per contract or spread (×100), no fees.</p>`;
 }
 let SCORE_DESK="futures";
 function renderScore(){

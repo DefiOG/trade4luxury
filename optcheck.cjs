@@ -15,12 +15,19 @@ const scan = JSON.parse(fs.readFileSync(inp, "utf8"));
 const at = v => { const t = Date.parse(v || ""); return Number.isFinite(t) ? t : NaN; };
 let ready = 0;
 for (const it of scan.ideas || []) {
-  const t = Math.max(at(it.quote && it.quote.at), at(it.optionCandidate && it.optionCandidate.verifiedAt));
+  const t = Math.max(0, ...[at(it.quote && it.quote.at), at(it.optionCandidate && it.optionCandidate.verifiedAt), at(it.creditSpread && it.creditSpread.verifiedAt)].filter(Number.isFinite)) || NaN;
   const now = Number.isFinite(t) ? t + 1000 : Date.now();
   const before = it.status;
   const v = StockOptionsDesk.check(it, now);
   it.status = v.status;
   it.checks = v.issues;
+  if (it.lane === "credit" && v.spread) {
+    if (it.creditSpread) Object.assign(it.creditSpread, { chainReady: v.spread.ok, credit: v.spread.credit, width: v.spread.width, maxLoss: v.spread.maxLoss });
+    if (!v.spread.ok) it.checks = [...v.issues, ...v.spread.why.map(w => "Spread: " + w)];
+    if (v.spread.ok) ready++;
+    console.log(`${it.ticker}: ${before} -> ${v.status}; credit spread ${it.creditSpread ? (v.spread.ok ? "PASSES" : "fails") : "none"}${v.spread.credit != null ? `; credit ${v.spread.credit}, width ${v.spread.width}, max loss ${v.spread.maxLoss}` : ""}${it.checks.length ? "; " + it.checks.join("; ") : ""}`);
+    continue;
+  }
   if (it.optionCandidate) it.optionCandidate.chainReady = !!v.chainReady;
   if (v.chainReady) ready++;
   console.log(`${it.ticker}: ${before} -> ${v.status}; R:R ${v.rr == null ? "-" : v.rr.toFixed(2)}; contract ${it.optionCandidate ? (v.chainReady ? "PASSES" : "fails") : "none"}${v.issues.length ? "; " + v.issues.join("; ") : ""}`);
