@@ -1,5 +1,5 @@
 {
- "asOf": "2026-10-14",
+ "asOf": "2026-10-15",
  "key": "mid",
  "label": "Mid-cycle expansion",
  "favors": "NQ/ES long, CL firm, dips bought",
@@ -14,10 +14,10 @@
   {
    "group": "growth",
    "name": "Jobless claims",
-   "value": "198k (4-wk avg)",
+   "value": "199k (4-wk avg)",
    "signal": 0,
    "text": "About the same as the last 6 months",
-   "asOf": "2026-10-03"
+   "asOf": "2026-10-10"
   },
   {
    "group": "growth",
@@ -46,10 +46,10 @@
   {
    "group": "growth",
    "name": "Real retail sales",
-   "value": "+1.9% y/y after inflation",
+   "value": "+2.3% y/y after inflation",
    "signal": 1,
    "text": "Consumers spending more",
-   "asOf": "2026-08-01"
+   "asOf": "2026-09-01"
   },
   {
    "group": "growth",
@@ -62,10 +62,10 @@
   {
    "group": "growth",
    "name": "Yield curve (10y − 2y)",
-   "value": "+0.42 pts",
+   "value": "+0.37 pts",
    "signal": 0,
    "text": "Positive and steady",
-   "asOf": "2026-10-13"
+   "asOf": "2026-10-14"
   },
   {
    "group": "inflation",
@@ -86,26 +86,26 @@
   {
    "group": "inflation",
    "name": "5-yr inflation expectations",
-   "value": "2.33%",
+   "value": "2.36%",
    "signal": 0,
    "text": "Anchored",
-   "asOf": "2026-10-13"
+   "asOf": "2026-10-14"
   },
   {
    "group": "stress",
    "name": "Junk-bond spreads",
-   "value": "3.11 pts (+0.46 in a month)",
+   "value": "3.25 pts (+0.49 in a month)",
    "signal": 0,
    "text": "Calm credit markets",
-   "asOf": "2026-10-12"
+   "asOf": "2026-10-14"
   },
   {
    "group": "stress",
    "name": "Financial conditions (Chicago Fed)",
-   "value": "-0.49",
+   "value": "-0.5",
    "signal": 0,
    "text": "Looser than average",
-   "asOf": "2026-10-02"
+   "asOf": "2026-10-09"
   },
   {
    "group": "policy",
@@ -113,15 +113,15 @@
    "value": "3.88%",
    "signal": 0,
    "text": "Effective rate",
-   "asOf": "2026-10-12"
+   "asOf": "2026-10-13"
   },
   {
    "group": "supporting",
    "name": "Inventories-to-sales ratio",
-   "value": "1.30 (+0.00 in 3 months)",
+   "value": "1.33 (+0.02 in 3 months)",
    "signal": 0,
    "text": "Stable",
-   "asOf": "2026-07-01"
+   "asOf": "2026-08-01"
   },
   {
    "group": "supporting",
@@ -154,33 +154,39 @@
    "key": "sentiment",
    "name": "Sentiment vs. spending",
    "state": "off",
-   "text": "Sentiment 49.5 → 51.7 over 2 months; real retail sales +0.8% over 3 months. No divergence.",
+   "text": "Sentiment 49.5 → 51.7 over 2 months; real retail sales +0.5% over 3 months. No divergence.",
    "asOf": "2026-08-01"
   },
   {
    "key": "beige",
    "name": "Fed Beige Book tone",
-   "state": "off",
-   "text": "Hawkish phrases 50 (+10% vs. 202605), dovish 24 (-26%), per 10k words. No big shift in tone.",
-   "detail": "Most frequent: hawkish price increases 37, shortages 7, wage pressures 6; dovish cautious outlook 8, slowing demand 6, layoffs 5.",
-   "asOf": "202608"
+   "state": "bullish",
+   "text": "Hawkish phrases 48 (-14% vs. 202607), dovish 30 (+30%), per 10k words. Slack language (layoffs, discounting, caution) is rising fast: long bias on bond futures.",
+   "detail": "Most frequent: hawkish price increases 28, wage pressures 11, shortages 7; dovish slowing demand 11, layoffs 7, cautious outlook 7.",
+   "asOf": "202610"
   },
   {
    "key": "freight",
    "name": "Freight and shipping",
    "state": "off",
-   "text": "Cass shipments +1.9% y/y; truck tonnage -2.4% over 3 months; dry-bulk shipping (BDRY) -9% over 45 trading days. No sustained break.",
+   "text": "Cass shipments +1.9% y/y; truck tonnage -2.4% over 3 months; dry-bulk shipping (BDRY) -12% over 45 trading days. No sustained break.",
    "asOf": "2026-09-01"
   },
   {
    "key": "curve",
    "name": "Yield curve",
    "state": "off",
-   "text": "10y − 2y = +0.42; over 3 months the 2-year moved +0.54 and the 10-year +0.62. Not recently inverted.",
-   "asOf": "2026-10-13"
+   "text": "10y − 2y = +0.37; over 3 months the 2-year moved +0.61 and the 10-year +0.63. Not recently inverted.",
+   "asOf": "2026-10-14"
   }
  ],
- "tilts": [],
+ "tilts": [
+  {
+   "bucket": "bonds",
+   "side": "long",
+   "why": "Beige Book turning dovish"
+  }
+ ],
  "hurdles": {
   "equities long": {
    "min": 6,
@@ -193,14 +199,18 @@
    "why": []
   },
   "bonds long": {
-   "min": 6,
+   "min": 5,
    "markets": "ZT, ZF, ZN, ZB, UB",
-   "why": []
+   "why": [
+    "easier: Beige Book turning dovish"
+   ]
   },
   "bonds short": {
-   "min": 6,
+   "min": 7,
    "markets": "ZT, ZF, ZN, ZB, UB",
-   "why": []
+   "why": [
+    "harder: Beige Book turning dovish"
+   ]
   },
   "industrials long": {
    "min": 6,
