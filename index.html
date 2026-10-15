@@ -422,7 +422,7 @@ window.CheatSheet=function(root,m){
 const SUPABASE_URL="https://mlvqtbkqrcgrzkhphqmc.supabase.co";
 const SUPABASE_ANON_KEY="sb_publishable_YIIwZRrB44c3LVUlVkGa-A_Mi1X0O_Z";  // publishable key: safe to be public
 const LIVE=!!(SUPABASE_URL&&SUPABASE_ANON_KEY);
-const KIND={stocks:"Stock scan",premarket:"Pre-market",adhoc:"Ad hoc",event:"Release reaction",sectors:"Sectors",weekly:"Week ahead",technical:"Technical"};
+const KIND={evening:"Evening wrap",stocks:"Stock scan",premarket:"Pre-market",adhoc:"Ad hoc",event:"Release reaction",sectors:"Sectors",weekly:"Week ahead",technical:"Technical"};
 const $=s=>document.querySelector(s);
 const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const safeUrl=u=>/^https?:\/\//i.test(String(u||""))?String(u):"";
@@ -559,6 +559,21 @@ function block(s,open){
     ${(s.risks||[]).length?`<div><div class="eyebrow">Risks</div><ul class="plain small">${s.risks.map(r=>`<li>${esc(r)}</li>`).join("")}</ul></div>`:""}
     ${extras(s)}${sources(s)}</div>`;
 }
+function eveningHtml(s,open){
+  const sg=v=>/^-|^−/.test(String(v||""))?"neg":/^\+/.test(String(v||""))?"pos":"";
+  const ov=(s.overnight||[]).map(r=>`<tr><td class="mono"><b>${esc(r.symbol)}</b></td><td class="num">${esc(r.last)}</td><td class="num ${sg(r.vsClose)}">${esc(r.vsClose)}</td><td class="mono small">${esc(r.range||"")}</td></tr>`).join("");
+  const ot=(s.openTrades||[]).map(t=>`<li><b class="mono">${esc(t.contract)}</b> ${esc(t.direction||"")} · <b>${esc(t.status||"")}</b><br><span class="small">${esc(t.note||"")}</span></li>`).join("");
+  const nw=(s.news||[]).map(n=>`<li>${esc(n)}</li>`).join("");
+  const src=(s.sources||[]).filter(x=>/^https?:/.test(x.url||"")).map(x=>`<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title||x.url)}</a>`).join(" · ");
+  const body=`${s.summary?`<p class="muted" style="max-width:72ch">${esc(s.summary)}</p>`:""}
+    ${ov?`<div class="tbl-wrap"><table><thead><tr><th>Futures</th><th class="num">Evening</th><th class="num">vs 5 pm</th><th>Evening range</th></tr></thead><tbody>${ov}</tbody></table></div>`:""}
+    ${ot?`<div><div class="eyebrow">Open paper trades overnight</div><ul class="plain" style="display:grid;gap:8px;margin-top:6px">${ot}</ul></div>`:""}
+    ${nw?`<div><div class="eyebrow">News after the close</div><ul style="padding-left:18px;display:grid;gap:4px;margin-top:6px">${nw}</ul></div>`:""}
+    ${src?`<p class="note">Sources: ${src}</p>`:""}`;
+  const when=(()=>{const d=new Date(s.createdAt);return isNaN(d)?esc(s.date):d.toLocaleString(undefined,{weekday:"short",hour:"numeric",minute:"2-digit"})})();
+  return open?`<div class="panel" style="display:grid;gap:14px;border-left:3px solid var(--accent,#1D5C88)"><div><div class="eyebrow">Evening wrap · ${when}</div><h2 style="margin-top:4px">${esc(s.headline||"Evening wrap")}</h2></div>${body}</div>`
+    :`<details class="scan"><summary><span class="mono small muted">${esc(s.date)}</span><span><b>Last night:</b> ${esc(s.headline||"")}</span><span class="chip">Evening wrap</span></summary><div class="body" style="display:grid;gap:14px">${body}</div></details>`;
+}
 function renderToday(){
   const scans=FEED.scans||[];
   const brief=scans.find(s=>!s.kind||s.kind==="premarket"||s.kind==="adhoc");
@@ -567,6 +582,8 @@ function renderToday(){
   const parts=[];
   scans.filter(s=>s.kind==="event"&&s.date===brief.date).forEach(s=>parts.push(block(s)));
   parts.push(block(brief));
+  const eve=scans.filter(x=>x.kind==="evening").sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)))[0];
+  if(eve){if(String(eve.createdAt)>String(brief.createdAt||""))parts.unshift(eveningHtml(eve,true));else parts.push(eveningHtml(eve,false))}
   const wk=scans.find(s=>s.kind==="weekly");if(wk)parts.push(`<details class="scan"><summary><span class="mono small muted">${esc(wk.date)}</span><span><b>Week ahead:</b> ${esc(wk.headline||"")}</span><span class="chip">Week ahead</span></summary><div class="body">${block(wk)}</div></details>`);
   $("#v-today").innerHTML=parts.join("")+fx;
   window.MacroPanel&&MacroPanel($("#fx-macro"),FEED.regime,FEED.positioning);
