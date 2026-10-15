@@ -604,6 +604,21 @@ function calc(t){
   if(x==null||e==null)return{open:true};
   return{open:false,pnl:(x-e)*d*q*pv-f,r:risk?((x-e)*d)/risk:null};
 }
+/* ---------- live prices (optional; needs the price relay) ---------- */
+const PRICE_URL="";
+const LPX_SYM={ES:"ES=F",MES:"ES=F",NQ:"NQ=F",MNQ:"NQ=F",YM:"YM=F",MYM:"YM=F",RTY:"RTY=F",M2K:"RTY=F",ZN:"ZN=F",ZF:"ZF=F",ZB:"ZB=F",UB:"UB=F",CL:"CL=F",MCL:"CL=F",NG:"NG=F",GC:"GC=F",MGC:"GC=F",SI:"SI=F",HG:"HG=F",ZC:"ZC=F",ZS:"ZS=F",ZW:"ZW=F","6E":"6E=F","6J":"6J=F"};
+const LPX_PV={ES:50,MES:5,NQ:20,MNQ:2,YM:5,MYM:.5,RTY:50,M2K:5,ZT:2000,ZF:1000,ZN:1000,ZB:1000,UB:1000,CL:1000,MCL:100,NG:10000,GC:100,MGC:10,SI:5000,HG:25000,ZC:50,ZS:50,ZW:50,"6E":125000,"6J":12500000};
+let LPX={},LPX_AT=0,liveTimer=null;
+const liveSym=c=>LPX_SYM[c]||c,livePv=c=>LPX_PV[c]||100;
+function livePx(c){const q=LPX[liveSym(c)];return q&&q.p!=null?q.p:null}
+async function pollLive(){
+  if(!PRICE_URL||!OUT||document.hidden)return;
+  const syms=[...new Set((OUT.results||[]).filter(r=>["open","waiting","pending"].includes(r.status)).map(r=>liveSym(r.contract)))];
+  if(!syms.length)return;
+  try{const r=await fetch(PRICE_URL+"?s="+encodeURIComponent(syms.join(",")));if(!r.ok)return;LPX=await r.json();LPX_AT=Date.now();
+    renderTrades()}catch(e){}
+}
+function startLive(){if(!PRICE_URL||liveTimer)return;pollLive();liveTimer=setInterval(pollLive,20000)}
 let TRADE_DESK="all";
 function renderTrades(){
   const el=$("#v-trades");
@@ -615,19 +630,22 @@ function renderTrades(){
   const rr=v=>v==null?"–":`<span class="${v>0?"pos":v<0?"neg":""}">${fmtR(v)}</span>`;
   const mk=r=>`<td class="mono"><b>${esc(r.contract)}</b><div class="note">${deskOf(r)==="stocks"?"Stocks &amp; ETFs":"Futures"}</div></td><td><span class="chip ${dirCls(r.direction)}">${esc(r.direction)}</span></td><td>${r.grade?`<span class="chip ${esc(r.grade)}">${esc(r.grade)}</span>`:"–"}</td>`;
   const pl=r=>r.plan||{};
+  rs.forEach(r=>{const lp=livePx(r.contract);r._live=false;if(lp!=null&&r.status==="open"&&r.plan&&r.fill!=null){const d=r.direction==="short"?-1:1,risk=Math.abs(r.fill-r.plan.stop);r._live=true;r._last0=r.last;r.last=lp;r.pnl_now=(lp-r.fill)*d*(deskOf(r)==="stocks"?100:livePv(r.contract));r.r_now=risk?((lp-r.fill)*d)/risk:r.r_now;
+    r._hit=(d>0?lp<=r.plan.stop:lp>=r.plan.stop)?"stop level crossed":(d>0?lp>=r.plan.target:lp<=r.plan.target)?"target level crossed":""}
+  else if(lp!=null&&["waiting","pending"].includes(r.status)){r._lp=lp}});
   const open=rs.filter(r=>r.status==="open").sort((a,b)=>(b.pnl_now||0)-(a.pnl_now||0));
   const wait=rs.filter(r=>["waiting","pending"].includes(r.status));
   const closed=rs.filter(r=>["target","stop","expired"].includes(r.status)).sort((a,b)=>String(b.exit_on).localeCompare(String(a.exit_on)));
   const sum=a=>a.reduce((t,r)=>t+(r.pnl_now??r.pnl??0),0);
   const pick=`<div class="seg" role="group" aria-label="Desk" style="margin-bottom:14px">${[["all","All"],["futures","Futures"],["stocks","Stocks &amp; ETFs"]].map(([k,l])=>`<button type="button" data-tdesk="${k}" aria-pressed="${TRADE_DESK===k}">${l}</button>`).join("")}</div>`;
   el.innerHTML=pick+`
-  <div class="panel"><div class="panel-h"><h2>Open trades</h2><span class="note">${open.length} open · ${usd(sum(open))} at the last close</span></div>
-  ${open.length?tableHtml(["Market","Dir","Grade","Since","Entry","Stop","Target","Last","R now","P&L now"],open.map(r=>`<tr>${mk(r)}<td class="mono small">${esc(r.filled_on)}</td><td class="num">${px(r.fill)}</td><td class="num">${px(pl(r).stop)}</td><td class="num">${px(pl(r).target)}</td><td class="num">${px(r.last)}</td><td class="num">${rr(r.r_now)}</td><td class="num">${usd(r.pnl_now)}</td></tr>`)):'<div class="empty">No open trades right now.</div>'}</div>
+  <div class="panel"><div class="panel-h"><h2>Open trades</h2><span class="note">${open.length} open · ${usd(sum(open))} ${open.some(r=>r._live)?"at live prices":"at the last close"}</span></div>
+  ${open.length?tableHtml(["Market","Dir","Grade","Since","Entry","Stop","Target","Last","R now","P&L now"],open.map(r=>`<tr>${mk(r)}<td class="mono small">${esc(r.filled_on)}</td><td class="num">${px(r.fill)}</td><td class="num">${px(pl(r).stop)}</td><td class="num">${px(pl(r).target)}</td><td class="num">${px(r.last)}${r._live?` <span class="chip" title="Live, unofficial. Official result comes from the evening grading.">live</span>`:""}${r._hit?`<div class="note">${r._hit}</div>`:""}</td><td class="num">${rr(r.r_now)}</td><td class="num">${usd(r.pnl_now)}</td></tr>`)):'<div class="empty">No open trades right now.</div>'}</div>
   <div class="panel"><div class="panel-h"><h2>Waiting for entry</h2><span class="note">Published; the entry price hasn't been reached yet</span></div>
-  ${wait.length?tableHtml(["Market","Dir","Grade","Published","Entry","Stop","Target"],wait.map(r=>`<tr>${mk(r)}<td class="mono small">${esc(r.date)}</td><td class="num">${px(pl(r).entry)}</td><td class="num">${px(pl(r).stop)}</td><td class="num">${px(pl(r).target)}</td></tr>`)):'<div class="empty">Nothing waiting.</div>'}</div>
+  ${wait.length?tableHtml(["Market","Dir","Grade","Published","Entry","Stop","Target"],wait.map(r=>`<tr>${mk(r)}<td class="mono small">${esc(r.date)}</td><td class="num">${px(pl(r).entry)}</td><td class="num">${px(pl(r).stop)}</td><td class="num">${px(pl(r).target)}${r._lp!=null?`<div class="note">live ${px(r._lp)}</div>`:""}</td></tr>`)):'<div class="empty">Nothing waiting.</div>'}</div>
   <div class="panel"><div class="panel-h"><h2>Closed trades</h2><span class="note">${closed.length} closed · ${usd(sum(closed))}</span></div>
   ${closed.length?tableHtml(["Market","Dir","Grade","Closed","Result","Entry","Exit","R","P&L"],closed.map(r=>`<tr>${mk(r)}<td class="mono small">${esc(r.exit_on)}</td><td>${esc((RES[r.status]||[r.status])[0])}${r.checked?' <span class="note">(5-min checked)</span>':""}</td><td class="num">${px(r.fill)}</td><td class="num">${px(r.exit)}</td><td class="num">${rr(r.r)}</td><td class="num">${usd(r.pnl)}</td></tr>`)):'<div class="empty">No closed trades yet.</div>'}</div>
-  <p class="note" style="max-width:80ch">Every long/short idea the agent publishes is paper-traded here automatically: one contract (100 shares for stocks and ETFs), no fees. Graded each weekday evening on real prices.</p>`;
+  <p class="note" style="max-width:80ch">Every long/short idea the agent publishes is paper-traded here automatically: one contract (100 shares for stocks and ETFs), no fees. Graded each weekday evening on real prices. ${PRICE_URL?"Rows marked live use a streaming price while this tab is open and are unofficial until graded.":""}</p>`;
   el.querySelectorAll("[data-tdesk]").forEach(b=>b.addEventListener("click",()=>{TRADE_DESK=b.dataset.tdesk;renderTrades()}));
 }
 /* ---------- outcomes & scorecard ---------- */
@@ -690,7 +708,7 @@ async function open(code,remember){
   FEED=await decryptFeed(code);NORM=norm(code);
   if(remember)store("fd-code",norm(code));
   await loadOutcomes(code);
-  $("#gate").hidden=true;$("#app").hidden=false;renderAll();
+  $("#gate").hidden=true;$("#app").hidden=false;renderAll();startLive();
   initComments(code).catch(()=>{});
 }
 $("#unlock").addEventListener("submit",async e=>{
