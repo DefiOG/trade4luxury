@@ -616,10 +616,27 @@ async function pollLive(){
   const syms=[...new Set((OUT.results||[]).filter(r=>["open","waiting","pending"].includes(r.status)).map(r=>liveSym(r.contract)))];
   if(!syms.length)return;
   try{const r=await fetch(PRICE_URL+"?s="+encodeURIComponent(syms.join(",")));if(!r.ok)return;LPX=await r.json();LPX_AT=Date.now();
-    renderTrades()}catch(e){}
+    renderTrades();const h=$("#score-head");if(h)h.outerHTML=scoreHeadHtml()}catch(e){}
 }
 function startLive(){if(!PRICE_URL||liveTimer)return;pollLive();liveTimer=setInterval(pollLive,20000)}
 let TRADE_DESK="all";
+function applyLive(rs){
+  const deskOf=r=>r.desk||(r.unit&&/share/.test(r.unit)?"stocks":"futures");
+  rs.forEach(r=>{const lp=livePx(r.contract);r._live=false;if(lp!=null&&r.status==="open"&&r.plan&&r.fill!=null){const d=r.direction==="short"?-1:1,risk=Math.abs(r.fill-r.plan.stop);r._live=true;r._last0=r.last;r.last=lp;r.pnl_now=(lp-r.fill)*d*(deskOf(r)==="stocks"?100:livePv(r.contract));r.r_now=risk?((lp-r.fill)*d)/risk:r.r_now;
+    r._hit=(d>0?lp<=r.plan.stop:lp>=r.plan.stop)?"stop level crossed":(d>0?lp>=r.plan.target:lp<=r.plan.target)?"target level crossed":""}
+  else if(lp!=null&&["waiting","pending"].includes(r.status)){r._lp=lp}});
+}
+function scoreHeadHtml(){
+  const rs=(OUT.results||[]).filter(r=>r.status!=="not_triggered");applyLive(rs);
+  const closed=rs.filter(r=>["target","stop","expired"].includes(r.status)),open=rs.filter(r=>r.status==="open");
+  const cl=closed.reduce((t,r)=>t+(r.pnl||0),0),op=open.reduce((t,r)=>t+(r.pnl_now||0),0);
+  const w=closed.filter(r=>(r.pnl||0)>0).length,tot=cl+op,anyLive=open.some(r=>r._live);
+  const cR=closed.reduce((t,r)=>t+(r.r||0),0),oR=open.reduce((t,r)=>t+(r.r_now||0),0);
+  const sg=v=>v>0?"pos":v<0?"neg":"",money=v=>(v>0?"+":"")+fmt$(v);
+  const t=(l,v,sub,c="")=>`<div class="stat"><div class="eyebrow">${l}</div><b class="${c}">${v}</b><div class="note">${sub}</div></div>`;
+  return `<div class="panel" id="score-head"><div class="panel-h"><h2>How it's doing</h2><span class="note">Futures + Stocks &amp; ETFs · ${anyLive?'<span class="chip">live</span> unofficial until tonight\'s grading':"as of the last official grading"}</span></div>
+  <div class="stats">${t("Total paper P&amp;L",money(tot),`${fmtR(cR+oR)} across ${closed.length+open.length} trades`,sg(tot))}${t("Open now",money(op),`${open.length} trade${open.length===1?"":"s"} running`,sg(op))}${t("Closed",closed.length?`${w}–${closed.length-w}`:"–",closed.length?`${money(cl)} · ${Math.round(w/closed.length*100)}% won`:"none closed yet",sg(cl))}</div></div>`;
+}
 function renderTrades(){
   const el=$("#v-trades");
   if(!OUT){el.innerHTML=`<div class="empty">The paper trades appear after the first grading run.</div>`;return}
@@ -630,9 +647,7 @@ function renderTrades(){
   const rr=v=>v==null?"–":`<span class="${v>0?"pos":v<0?"neg":""}">${fmtR(v)}</span>`;
   const mk=r=>`<td class="mono"><b>${esc(r.contract)}</b><div class="note">${deskOf(r)==="stocks"?"Stocks &amp; ETFs":"Futures"}</div></td><td><span class="chip ${dirCls(r.direction)}">${esc(r.direction)}</span></td><td>${r.grade?`<span class="chip ${esc(r.grade)}">${esc(r.grade)}</span>`:"–"}</td>`;
   const pl=r=>r.plan||{};
-  rs.forEach(r=>{const lp=livePx(r.contract);r._live=false;if(lp!=null&&r.status==="open"&&r.plan&&r.fill!=null){const d=r.direction==="short"?-1:1,risk=Math.abs(r.fill-r.plan.stop);r._live=true;r._last0=r.last;r.last=lp;r.pnl_now=(lp-r.fill)*d*(deskOf(r)==="stocks"?100:livePv(r.contract));r.r_now=risk?((lp-r.fill)*d)/risk:r.r_now;
-    r._hit=(d>0?lp<=r.plan.stop:lp>=r.plan.stop)?"stop level crossed":(d>0?lp>=r.plan.target:lp<=r.plan.target)?"target level crossed":""}
-  else if(lp!=null&&["waiting","pending"].includes(r.status)){r._lp=lp}});
+  applyLive(rs);
   const open=rs.filter(r=>r.status==="open").sort((a,b)=>(b.pnl_now||0)-(a.pnl_now||0));
   const wait=rs.filter(r=>["waiting","pending"].includes(r.status));
   const closed=rs.filter(r=>["target","stop","expired"].includes(r.status)).sort((a,b)=>String(b.exit_on).localeCompare(String(a.exit_on)));
@@ -686,7 +701,7 @@ function renderScore(){
   const d=new Date(OUT.generatedAt);
   if(desks&&SCORE_DESK==="options"&&optionsLedgerHtml()){el.innerHTML=pick+optionsLedgerHtml();el.querySelectorAll("[data-desk]").forEach(b=>b.addEventListener("click",()=>{SCORE_DESK=b.dataset.desk;renderScore()}));return}
   if(desks&&SCORE_DESK==="options"){el.innerHTML=pick+`<div class="panel"><div class="panel-h"><h2>Options scorecard</h2></div><p class="muted" style="max-width:72ch">No option contracts have been published yet, so there is nothing to grade. The first one appears when a setup passes the live-chain checks (tight bid/ask, open interest, delta 0.35–0.70, enough time to expiry).</p><p class="small" style="max-width:72ch"><b>How options will be graded:</b> paper entry at the <b>ask</b> when the contract is published; marked each evening at the contract's real <b>bid</b>; exit when the stock hits its stop or target, at a time stop, or at expiration, always at that day's real option price. Results show return on premium and paper P&amp;L per contract (×100), next to whether the stock call itself worked. Option results are never inferred from the stock's move.</p></div>`;el.querySelectorAll("[data-desk]").forEach(b=>b.addEventListener("click",()=>{SCORE_DESK=b.dataset.desk;renderScore()}));return}
-  el.innerHTML=pick+`<div id="fx-paper"></div><div class="stats">${tile("Closed setups",o.n||0)}${tile("Win rate",pct(o.win))}${tile("Avg R per setup",o.n?fmtR(o.avgR):"–",o.avgR>0?"pos":o.avgR<0?"neg":"")}${tile("Total R",o.n?fmtR(o.totalR):"–",o.totalR>0?"pos":o.totalR<0?"neg":"")}</div>
+  el.innerHTML=pick+scoreHeadHtml()+`<div id="fx-paper"></div><div class="stats">${tile("Closed setups",o.n||0)}${tile("Win rate",pct(o.win))}${tile("Avg R per setup",o.n?fmtR(o.avgR):"–",o.avgR>0?"pos":o.avgR<0?"neg":"")}${tile("Total R",o.n?fmtR(o.totalR):"–",o.totalR>0?"pos":o.totalR<0?"neg":"")}</div>
   <p class="note">Right now: ${c.open||0} in a trade, ${c.waiting||0} waiting for entry, ${c.not_triggered||0} never triggered.</p>
   <div class="panel"><div class="panel-h"><h2>By grade</h2><span class="note">If A-setups don't beat B-setups, the scoring needs work.</span></div>${tableHtml(head,rowsOf(s.byGrade,gradeLbl))||'<div class="empty">No closed setups yet.</div>'}</div>
   <div class="panel"><div class="panel-h"><h2>By market</h2></div>${tableHtml(head,rowsOf(s.byMarket,k=>`<b class="mono">${esc(k)}</b>`))||'<div class="empty">No closed setups yet.</div>'}</div>
