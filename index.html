@@ -679,7 +679,8 @@ function renderTrades(){
 }
 /* ---------- outcomes & scorecard ---------- */
 const RES={target:["Target hit","long"],stop:["Stopped out","short"],expired:["Time exit",""],open:["In trade","B"],waiting:["Waiting for entry",""],not_triggered:["Never triggered",""],pending:["Starts next session",""],ungradable:["Not tracked",""]};
-const resOf=o=>{const b=RES[o.status]||[o.status,""];if(!o.partial)return b;if(o.status==="stop")return["½ banked, rest out at entry","B"];if(o.status==="open")return["In trade · ½ banked","B"];return[b[0]+" · ½ banked at +1R",b[1]]};
+const SKIP={stop:"Skipped: stop level hit before entry",target:"Skipped: ran to target without a fill",gap:"Skipped: opened too far past entry, not chased"};
+const resOf=o=>{if(o.status==="skipped")return[SKIP[o.skip]||"Skipped",""];const b=RES[o.status]||[o.status,""];if(!o.partial)return b;if(o.status==="stop")return["½ banked, rest out at entry","B"];if(o.status==="open")return["In trade · ½ banked","B"];return[b[0]+" · ½ banked at +1R",b[1]]};
 function resultHtml(o){
   if(!o||o.status==="watch")return "";
   const [label,cls]=resOf(o);
@@ -727,7 +728,7 @@ function renderScore(){
   if(desks&&SCORE_DESK==="options"&&optionsLedgerHtml()){el.innerHTML=pick+optionsLedgerHtml();el.querySelectorAll("[data-desk]").forEach(b=>b.addEventListener("click",()=>{SCORE_DESK=b.dataset.desk;renderScore()}));return}
   if(desks&&SCORE_DESK==="options"){el.innerHTML=pick+`<div class="panel"><div class="panel-h"><h2>Options scorecard</h2></div><p class="muted" style="max-width:72ch">No option contracts have been published yet, so there is nothing to grade. The first one appears when a setup passes the desk's live option-chain checks.</p><p class="small" style="max-width:72ch"><b>How options will be graded:</b> paper entry at the <b>ask</b> when the contract is published; marked each evening at the contract's real <b>bid</b>; exit when the stock hits its stop or target, at a time stop, or at expiration, always at that day's real option price. Results show return on premium and paper P&amp;L per contract (×100), next to whether the stock call itself worked. Option results are never inferred from the stock's move.</p></div>`;el.querySelectorAll("[data-desk]").forEach(b=>b.addEventListener("click",()=>{SCORE_DESK=b.dataset.desk;renderScore()}));return}
   el.innerHTML=pick+scoreHeadHtml()+`<div id="fx-paper"></div><div class="stats">${tile("Closed setups",o.n||0)}${tile("Win rate",pct(o.win))}${tile("Avg R per setup",o.n?fmtR(o.avgR):"–",o.avgR>0?"pos":o.avgR<0?"neg":"")}${tile("Total R",o.n?fmtR(o.totalR):"–",o.totalR>0?"pos":o.totalR<0?"neg":"")}</div>
-  <p class="note">Right now: ${c.open||0} in a trade, ${c.waiting||0} waiting for entry, ${c.not_triggered||0} never triggered.</p>
+  <p class="note">Right now: ${c.open||0} in a trade, ${c.waiting||0} waiting for entry, ${c.not_triggered||0} never triggered, ${c.skipped||0} skipped as stale.</p>
   <div class="panel"><div class="panel-h"><h2>By grade</h2><span class="note">If A-setups don't beat B-setups, the scoring needs work.</span></div>${tableHtml(head,rowsOf(s.byGrade,gradeLbl))||'<div class="empty">No closed setups yet.</div>'}</div>
   <div class="panel"><div class="panel-h"><h2>By market</h2></div>${tableHtml(head,rowsOf(s.byMarket,k=>`<b class="mono">${esc(k)}</b>`))||'<div class="empty">No closed setups yet.</div>'}</div>
   <div class="panel"><div class="panel-h"><h2>By timeframe</h2></div>${tableHtml(head,rowsOf(s.byTimeframe,esc))||'<div class="empty">No closed setups yet.</div>'}</div>

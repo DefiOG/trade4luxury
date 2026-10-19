@@ -30,6 +30,8 @@ Rules (deliberately conservative, daily bars only):
   * After the fill, the stop is checked first. If the stop and target are both
     inside the same daily bar, it counts as a stop. Target hits aren't counted
     on the fill bar itself, except for intraday ideas.
+  * Skipped (not counted): before the entry fills, price touches the stop or
+    the target, or a breakout opens more than half the risk past the entry.
   * Free ride: once a trade reaches +1R, half is banked there and the stop on
     the other half moves to the fill price.
   * Time limit after the fill: intraday exits at that day's close, swing after
@@ -123,6 +125,7 @@ def dollars(contract: str, points: float) -> float:
     root = root_of(contract)
     return round(points * POINT_VALUE.get(root, SHARES), 2)
 FILL_WINDOW = {"intraday": 1, "swing": 3, "position": 10}
+SKIP_GAP_R = 0.5  # a breakout that opens this many R past entry is not chased
 FREE_RIDE_R = 1.0  # bank half at +1R, stop to entry on the rest
 HOLD_LIMIT = {"intraday": 1, "swing": 10, "position": 40}
 KEEP_DAYS = 90
@@ -183,6 +186,8 @@ def simulate(bars, scan_date, direction, timeframe, entry, stop, target, resolve
     breakout = sign * (entry - after[0]["o"]) >= 0
     fill_i = fill = None
     for i, b in enumerate(after[: FILL_WINDOW[tf]]):
+        if breakout and i > 0 and sign * (b["o"] - entry) > SKIP_GAP_R * risk:
+            return {"status": "skipped", "skip": "gap", "skip_on": b["d"]}
         if breakout and sign * ((b["h"] if sign > 0 else b["l"]) - entry) >= 0:
             fill = max(entry, b["o"]) if sign > 0 else min(entry, b["o"])
         elif not breakout and sign * ((b["l"] if sign > 0 else b["h"]) - entry) <= 0:
@@ -190,6 +195,11 @@ def simulate(bars, scan_date, direction, timeframe, entry, stop, target, resolve
         if fill is not None:
             fill_i = i
             break
+        # Stale before entry: price reached the stop or the target without filling.
+        if sign * ((b["l"] if sign > 0 else b["h"]) - stop) <= 0:
+            return {"status": "skipped", "skip": "stop", "skip_on": b["d"]}
+        if sign * ((b["h"] if sign > 0 else b["l"]) - target) >= 0:
+            return {"status": "skipped", "skip": "target", "skip_on": b["d"]}
     if fill is None:
         done = len(after) >= FILL_WINDOW[tf]
         return {"status": "not_triggered" if done else "waiting"}

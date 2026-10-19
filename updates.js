@@ -2,6 +2,9 @@
    Each entry: date (YYYY-MM-DD), area, what changed, why. Plain text only.
    Keep it general: say what changed for the reader, never the exact rules or parameters. */
 window.TFL_UPDATES = [
+  { date: "2026-10-19", area: "Scorecard", title: "Stale setups are skipped",
+    what: "If price reaches a setup's stop or target before the entry fills, or opens well past the entry, the setup is now marked \"Skipped\" with the reason and isn't counted as a win or a loss.",
+    why: "The guide already says to skip stale setups rather than chase them, and the grader was sometimes filling trades after their stop had already been hit, which no one would actually do." },
   { date: "2026-10-19", area: "Scorecard", title: "Free ride: locking in profits",
     what: "Futures, stock and ETF paper trades now take profit on part of the position once a trade is well in profit, and move the stop on the rest to the entry price. The rest rides to the target risk-free. Trades show \"½ banked\" when this happens.",
     why: "Open trades were swinging hundreds of dollars without locking anything in, so a good trade could still turn into a full loss. This trades a little of the biggest wins for far fewer winners turning into losers." },
