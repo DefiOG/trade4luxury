@@ -2,6 +2,9 @@
    Each entry: date (YYYY-MM-DD), area, what changed, why. Plain text only.
    Keep it general: say what changed for the reader, never the exact rules or parameters. */
 window.TFL_UPDATES = [
+  { date: "2026-10-19", area: "Stocks", title: "Entries you can actually get, stops that survive a normal day",
+    what: "Stock and ETF trades now have to enter close to where the stock is trading, and their stops have to sit outside a normal day's movement. Ideas that don't meet this are published as watches instead.",
+    why: "Of the first 15 stock ideas, only 3 ever filled; 5 reached their target without filling because the entry asked for a pullback that never came. Several stops were tighter than an ordinary day's move, so noise alone could stop them out." },
   { date: "2026-10-19", area: "Futures", title: "Daily Nasdaq read",
     what: "Every morning brief now includes a Nasdaq (MNQ) read: the bias, the key levels and what would turn it into a trade. When Nasdaq qualifies it's published as a paper trade like any other; otherwise it stays a watch. Paper trades can also be filtered by market (pick Nasdaq in the Market menu).",
     why: "Most testers trade Nasdaq, and on days it didn't qualify there was nothing about it at all. A daily read is useful even when there's no trade, without forcing weak ones." },

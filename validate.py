@@ -13,7 +13,8 @@ A long/short idea is accepted only if:
     other for the direction, with reward:risk of at least 2:1 (recomputed);
   * ref matches the live snapshot quote for that contract within 1% (catches
     spot-vs-futures and wrong-unit levels) and the quote is recent;
-  * entry is within 3 ATR of the live price;
+  * entry is within 3 ATR of the live price (stocks/ETFs: within 0.75 ATR,
+    with the stop at least 1 ATR from the entry);
   * the stop sits beyond a nearby 20/50-day moving average (at least 0.25 ATR
     past it), not just in front of it;
   * the score is a number and is at least the regime gauge's minimum score
@@ -45,6 +46,10 @@ BUCKET = {**{r: "equities" for r in ("ES", "MES", "NQ", "MNQ", "RTY", "M2K", "YM
           **{r: "industrials" for r in ("CL", "MCL", "HG", "HO")}}
 TICKER = re.compile(r"^[A-Z]{1,5}$")
 MAX_QUOTE_AGE_H = {"weekly": 80}
+
+
+STOCK_MAX_ENTRY_ATR = 0.75  # stocks/ETFs: entry within this many ATR of the live price
+STOCK_MIN_STOP_ATR = 1.0    # stocks/ETFs: stop at least one ATR from entry
 
 
 def num(v):
@@ -110,6 +115,13 @@ def check_idea(it, scan, snap, hurdles, now):
                 notes.append(f"ref {ref:g} doesn't match the live {sym} quote {last:g} (spot or wrong units?)")
             if atr and abs(e - last) > 3 * atr:
                 notes.append(f"entry {e:g} is more than 3 ATR from the live price {last:g}")
+            if not is_future and atr and atr > 0:
+                # Stocks/ETFs: an entry far from price rarely fills before the move happens,
+                # and a stop inside one day's normal range gets run by noise.
+                if abs(e - last) > STOCK_MAX_ENTRY_ATR * atr:
+                    notes.append(f"entry {e:g} is {abs(e - last) / atr:.1f} ATR from the live price {last:g}; keep it within {STOCK_MAX_ENTRY_ATR} ATR so it can fill")
+                if abs(e - s) < STOCK_MIN_STOP_ATR * atr:
+                    notes.append(f"stop is only {abs(e - s) / atr:.2f} ATR from entry; give it at least {STOCK_MIN_STOP_ATR} ATR (about {e - sign * STOCK_MIN_STOP_ATR * atr:.4g}) and recheck reward:risk")
             # Stops must sit beyond nearby moving-average support/resistance, not just
             # in front of it, where ordinary noise runs them (e.g. a long stop a few
             # cents above the 20/50-day MA).
