@@ -1,6 +1,9 @@
 /* Updates log shown on the site's "Updates" tab. Newest first.
    Each entry: date (YYYY-MM-DD), area, what changed, why. Plain text only. */
 window.TFL_UPDATES = [
+  { date: "2026-10-19", area: "Site", title: "Tabs reordered",
+    what: "Tabs now run: the three desks, then Scorecard and Paper trades, then History and Updates, then the Cheat sheet and How to use.",
+    why: "Results are the second thing most people check, and on a phone they were cut off past the edge of the screen." },
   { date: "2026-10-19", area: "Options", title: "Weekly credit spreads on the index ETFs",
     what: "New weekly lane: put or call credit spreads on SPY, QQQ, IWM and DIA, 4 to 10 days to expiry. At most 2 open at once and 1 new per day; none when CPI, PCE, the jobs report or an FOMC decision lands before expiry.",
     why: "The options desk published only one trade in its first week. The index ETFs have the busiest option markets, so their spreads are cheap to trade and easy to price fairly." },
