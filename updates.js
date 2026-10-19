@@ -2,6 +2,9 @@
    Each entry: date (YYYY-MM-DD), area, what changed, why. Plain text only.
    Keep it general: say what changed for the reader, never the exact rules or parameters. */
 window.TFL_UPDATES = [
+  { date: "2026-10-19", area: "Stocks", title: "Wider stock screen",
+    what: "The stocks and options scan now screens about 140 of the most liquid US stocks every morning, not a fixed list of around 20, and looks closely at the strongest candidates. The sector scan also runs after the open now, on live prices.",
+    why: "The old list left out most of the market, so good setups in names outside it were never considered." },
   { date: "2026-10-19", area: "Stocks", title: "Entries you can actually get, stops that survive a normal day",
     what: "Stock and ETF trades now have to enter close to where the stock is trading, and their stops have to sit outside a normal day's movement. Ideas that don't meet this are published as watches instead.",
     why: "Of the first 15 stock ideas, only 3 ever filled; 5 reached their target without filling because the entry asked for a pullback that never came. Several stops were tighter than an ordinary day's move, so noise alone could stop them out." },
