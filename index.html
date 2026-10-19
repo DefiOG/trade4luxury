@@ -636,8 +636,8 @@ function startLive(){if(!PRICE_URL||liveTimer)return;pollLive();liveTimer=setInt
 let TRADE_DESK="all";
 function applyLive(rs){
   const deskOf=r=>r.desk||(r.unit&&/share/.test(r.unit)?"stocks":"futures");
-  rs.forEach(r=>{const lp=livePx(r.contract);r._live=false;if(lp!=null&&r.status==="open"&&r.plan&&r.fill!=null){const d=r.direction==="short"?-1:1,risk=Math.abs(r.fill-r.plan.stop);r._live=true;r._last0=r.last;r.last=lp;r.pnl_now=(lp-r.fill)*d*(deskOf(r)==="stocks"?100:livePv(r.contract));r.r_now=risk?((lp-r.fill)*d)/risk:r.r_now;
-    r._hit=(d>0?lp<=r.plan.stop:lp>=r.plan.stop)?"stop level crossed":(d>0?lp>=r.plan.target:lp<=r.plan.target)?"target level crossed":""}
+  rs.forEach(r=>{const lp=livePx(r.contract);r._live=false;if(lp!=null&&r.status==="open"&&r.plan&&r.fill!=null){const d=r.direction==="short"?-1:1,risk=Math.abs(r.fill-r.plan.stop);r._live=true;r._last0=r.last;r.last=lp;const pv=deskOf(r)==="stocks"?100:livePv(r.contract),hf=r.partial?0.5:1,riskP=Math.abs(r.plan.entry-r.plan.stop)||risk;r.pnl_now=(r.partial?r.partial.pnl:0)+hf*(lp-r.fill)*d*pv;r.r_now=riskP?(r.partial?0.5*((r.partial.px-r.fill)*d)/riskP:0)+hf*((lp-r.fill)*d)/riskP:r.r_now;
+    const sN=r.stop_now??r.plan.stop;r._hit=(d>0?lp<=sN:lp>=sN)?(r.partial?"breakeven stop crossed":"stop level crossed"):(d>0?lp>=r.plan.target:lp<=r.plan.target)?"target level crossed":""}
   else if(lp!=null&&["waiting","pending"].includes(r.status)){r._lp=lp}});
 }
 function scoreHeadHtml(){
@@ -673,15 +673,16 @@ function renderTrades(){
   <div class="panel"><div class="panel-h"><h2>Waiting for entry</h2><span class="note">Published; the entry price hasn't been reached yet</span></div>
   ${wait.length?tableHtml(["Market","Dir","Grade","Published","Entry","Stop","Target"],wait.map(r=>`<tr>${mk(r)}<td class="mono small">${esc(r.date)}</td><td class="num">${px(pl(r).entry)}</td><td class="num">${px(pl(r).stop)}</td><td class="num">${px(pl(r).target)}${r._lp!=null?`<div class="note">live ${px(r._lp)}</div>`:""}</td></tr>`)):'<div class="empty">Nothing waiting.</div>'}</div>
   <div class="panel"><div class="panel-h"><h2>Closed trades</h2><span class="note">${closed.length} closed · ${usd(sum(closed))}</span></div>
-  ${closed.length?tableHtml(["Market","Dir","Grade","Closed","Result","Entry","Exit","R","P&L"],closed.map(r=>`<tr>${mk(r)}<td class="mono small">${esc(r.exit_on)}</td><td>${esc((RES[r.status]||[r.status])[0])}${r.checked?' <span class="note">(5-min checked)</span>':""}</td><td class="num">${px(r.fill)}</td><td class="num">${px(r.exit)}</td><td class="num">${rr(r.r)}</td><td class="num">${usd(r.pnl)}</td></tr>`)):'<div class="empty">No closed trades yet.</div>'}</div>
+  ${closed.length?tableHtml(["Market","Dir","Grade","Closed","Result","Entry","Exit","R","P&L"],closed.map(r=>`<tr>${mk(r)}<td class="mono small">${esc(r.exit_on)}</td><td>${esc(resOf(r)[0])}${r.checked?' <span class="note">(5-min checked)</span>':""}</td><td class="num">${px(r.fill)}</td><td class="num">${px(r.exit)}</td><td class="num">${rr(r.r)}</td><td class="num">${usd(r.pnl)}</td></tr>`)):'<div class="empty">No closed trades yet.</div>'}</div>
   <p class="note" style="max-width:80ch">Every long/short idea the agent publishes is paper-traded here automatically: one contract (100 shares for stocks and ETFs), no fees. Graded each weekday evening on real prices. ${PRICE_URL?"Rows marked live use a streaming price while this tab is open and are unofficial until graded.":""}</p>`;
   el.querySelectorAll("[data-tdesk]").forEach(b=>b.addEventListener("click",()=>{TRADE_DESK=b.dataset.tdesk;renderTrades()}));
 }
 /* ---------- outcomes & scorecard ---------- */
 const RES={target:["Target hit","long"],stop:["Stopped out","short"],expired:["Time exit",""],open:["In trade","B"],waiting:["Waiting for entry",""],not_triggered:["Never triggered",""],pending:["Starts next session",""],ungradable:["Not tracked",""]};
+const resOf=o=>{const b=RES[o.status]||[o.status,""];if(!o.partial)return b;if(o.status==="stop")return["½ banked, rest out at entry","B"];if(o.status==="open")return["In trade · ½ banked","B"];return[b[0]+" · ½ banked at +1R",b[1]]};
 function resultHtml(o){
   if(!o||o.status==="watch")return "";
-  const [label,cls]=RES[o.status]||[o.status,""];
+  const [label,cls]=resOf(o);
   const usd=v=>v==null?"":` <span class="mono small ${v>0?"pos":v<0?"neg":""}">${v>0?"+":""}${fmt$(v)}</span>`;
   const r=o.r!=null?` <b class="mono ${o.r>0?"pos":o.r<0?"neg":""}">${fmtR(o.r)}</b>${usd(o.pnl)}`:o.r_now!=null?` <span class="mono muted">now ${fmtR(o.r_now)}</span>${usd(o.pnl_now)}`:"";
   const when=o.exit_on?` <span class="note">${esc(o.exit_on)}</span>`:o.filled_on?` <span class="note">since ${esc(o.filled_on)}</span>`:"";
@@ -730,7 +731,7 @@ function renderScore(){
   <div class="panel"><div class="panel-h"><h2>By grade</h2><span class="note">If A-setups don't beat B-setups, the scoring needs work.</span></div>${tableHtml(head,rowsOf(s.byGrade,gradeLbl))||'<div class="empty">No closed setups yet.</div>'}</div>
   <div class="panel"><div class="panel-h"><h2>By market</h2></div>${tableHtml(head,rowsOf(s.byMarket,k=>`<b class="mono">${esc(k)}</b>`))||'<div class="empty">No closed setups yet.</div>'}</div>
   <div class="panel"><div class="panel-h"><h2>By timeframe</h2></div>${tableHtml(head,rowsOf(s.byTimeframe,esc))||'<div class="empty">No closed setups yet.</div>'}</div>
-  ${recent.length?`<div class="panel"><div class="panel-h"><h2>Latest results</h2></div>${tableHtml(["Closed","Mkt","Dir","Grade","Result","R","Paper $"],recent.map(r=>`<tr><td class="mono small">${esc(r.exit_on)}</td><td class="mono"><b>${esc(r.contract)}</b></td><td><span class="chip ${dirCls(r.direction)}">${esc(r.direction)}</span></td><td>${r.grade?`<span class="chip ${esc(r.grade)}">${esc(r.grade)}</span>`:"–"}</td><td>${esc((RES[r.status]||[r.status])[0])}</td><td class="num ${r.r>0?"pos":"neg"}">${fmtR(r.r)}</td><td class="num ${r.pnl>0?"pos":r.pnl<0?"neg":""}">${r.pnl!=null?fmt$(r.pnl):"–"}</td></tr>`))}</div>`:""}
+  ${recent.length?`<div class="panel"><div class="panel-h"><h2>Latest results</h2></div>${tableHtml(["Closed","Mkt","Dir","Grade","Result","R","Paper $"],recent.map(r=>`<tr><td class="mono small">${esc(r.exit_on)}</td><td class="mono"><b>${esc(r.contract)}</b></td><td><span class="chip ${dirCls(r.direction)}">${esc(r.direction)}</span></td><td>${r.grade?`<span class="chip ${esc(r.grade)}">${esc(r.grade)}</span>`:"–"}</td><td>${esc(resOf(r)[0])}</td><td class="num ${r.r>0?"pos":"neg"}">${fmtR(r.r)}</td><td class="num ${r.pnl>0?"pos":r.pnl<0?"neg":""}">${r.pnl!=null?fmt$(r.pnl):"–"}</td></tr>`))}</div>`:""}
   <p class="note" style="max-width:80ch">How grading works: every setup with numeric levels is checked against real daily futures prices after each weekday close (stocks and ETFs against their own prices). If a day touches both the stop and the target, it counts as a stop, so results lean conservative. Paper dollars assume one contract per setup (100 shares for ETFs), no fees. Last graded ${isNaN(d)?"–":esc(d.toLocaleString(undefined,{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}))}. ${c.ungradable?`${c.ungradable} setup${c.ungradable>1?"s":""} aren't tracked because their levels were written as conditions rather than prices.`:""}</p>`;
   window.PaperPanel&&PaperPanel($("#fx-paper"),desks?Object.assign({},OUT,{summary:s}):OUT);
   el.querySelectorAll("[data-desk]").forEach(b=>b.addEventListener("click",()=>{SCORE_DESK=b.dataset.desk;renderScore()}));

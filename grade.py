@@ -30,6 +30,8 @@ Rules (deliberately conservative, daily bars only):
   * After the fill, the stop is checked first. If the stop and target are both
     inside the same daily bar, it counts as a stop. Target hits aren't counted
     on the fill bar itself, except for intraday ideas.
+  * Free ride: once a trade reaches +1R, half is banked there and the stop on
+    the other half moves to the fill price.
   * Time limit after the fill: intraday exits at that day's close, swing after
     10 bars, position after 40 bars ("expired", exit at the close).
 """
@@ -121,6 +123,7 @@ def dollars(contract: str, points: float) -> float:
     root = root_of(contract)
     return round(points * POINT_VALUE.get(root, SHARES), 2)
 FILL_WINDOW = {"intraday": 1, "swing": 3, "position": 10}
+FREE_RIDE_R = 1.0  # bank half at +1R, stop to entry on the rest
 HOLD_LIMIT = {"intraday": 1, "swing": 10, "position": 40}
 KEEP_DAYS = 90
 
@@ -194,35 +197,61 @@ def simulate(bars, scan_date, direction, timeframe, entry, stop, target, resolve
     rr = lambda px: sign * (px - fill) / risk
     limit = HOLD_LIMIT[tf]
     held = after[fill_i: fill_i + limit]
+    # Free ride: at +1R bank half the position and move the stop on the rest to the fill.
+    p1 = fill + sign * risk * FREE_RIDE_R
+    half = None  # {"on": date, "px": price} once half is banked
+    cur_stop = stop
+    base = {"filled_on": after[fill_i]["d"], "fill": fill}
+
+    def done(status, px, day, **kw):
+        r = rr(px)
+        out = {**base, "status": status, "exit_on": day, "exit": px, **kw}
+        if half:
+            out["partial"] = dict(half)
+            r = 0.5 * rr(half["px"]) + 0.5 * r
+        out["r"] = round(r, 2)
+        return out
+
     for j, b in enumerate(held):
         adverse = b["l"] if sign > 0 else b["h"]
         favorable = b["h"] if sign > 0 else b["l"]
-        hit_stop, hit_tgt = sign * (adverse - stop) <= 0, sign * (favorable - target) >= 0
+        hit_stop, hit_tgt = sign * (adverse - cur_stop) <= 0, sign * (favorable - target) >= 0
         ambiguous = (j == 0 and (hit_stop or (hit_tgt and tf != "intraday"))) or (j > 0 and hit_stop and hit_tgt)
-        verdict = (resolve or {}).get(b["d"]) if ambiguous else None
-        if ambiguous and verdict is None and want is not None:
+        verdict = (resolve or {}).get(b["d"]) if ambiguous and not half else None
+        if ambiguous and not half and verdict is None and want is not None:
             want.append({"date": b["d"], "fillDay": j == 0, "mode": "breakout" if breakout else "pullback"})
         if verdict == "none":
             continue
         if verdict == "target":
             px = target if j == 0 else (max(target, b["o"]) if sign > 0 else min(target, b["o"]))
-            return {"status": "target", "r": round(rr(px), 2), "filled_on": after[fill_i]["d"], "exit_on": b["d"], "fill": fill, "exit": px, "checked": "5m"}
+            return done("target", px, b["d"], checked="5m")
         if verdict == "stop":
-            px = stop if j == 0 else (min(stop, b["o"]) if sign > 0 else max(stop, b["o"]))
-            return {"status": "stop", "r": round(rr(px), 2), "filled_on": after[fill_i]["d"], "exit_on": b["d"], "fill": fill, "exit": px, "checked": "5m"}
+            px = cur_stop if j == 0 else (min(cur_stop, b["o"]) if sign > 0 else max(cur_stop, b["o"]))
+            return done("stop", px, b["d"], checked="5m")
         if hit_stop:
-            px = min(stop, b["o"]) if sign > 0 else max(stop, b["o"])
+            px = min(cur_stop, b["o"]) if sign > 0 else max(cur_stop, b["o"])
             if j == 0:
-                px = stop  # filled and stopped the same bar: assume the stop price
-            return {"status": "stop", "r": round(rr(px), 2), "filled_on": after[fill_i]["d"], "exit_on": b["d"], "fill": fill, "exit": px}
-        if (j > 0 or tf == "intraday") and sign * (favorable - target) >= 0:
+                px = cur_stop  # filled and stopped the same bar: assume the stop price
+            return done("stop", px, b["d"])
+        can_win = j > 0 or tf == "intraday"
+        if can_win and not half and sign * (favorable - p1) >= 0:
+            hp = (max(p1, b["o"]) if sign > 0 else min(p1, b["o"])) if j > 0 else p1
+            half = {"on": b["d"], "px": hp}
+            cur_stop = fill
+        if can_win and sign * (favorable - target) >= 0:
             px = max(target, b["o"]) if (sign > 0 and j > 0) else (min(target, b["o"]) if j > 0 else target)
-            return {"status": "target", "r": round(rr(px), 2), "filled_on": after[fill_i]["d"], "exit_on": b["d"], "fill": fill, "exit": px}
+            return done("target", px, b["d"])
     if len(held) >= limit:
         last = held[-1]
-        return {"status": "expired", "r": round(rr(last["c"]), 2), "filled_on": after[fill_i]["d"], "exit_on": last["d"], "fill": fill, "exit": last["c"]}
+        return done("expired", last["c"], last["d"])
     last = held[-1]
-    return {"status": "open", "r_now": round(rr(last["c"]), 2), "filled_on": after[fill_i]["d"], "fill": fill}
+    r_now = rr(last["c"])
+    out = {**base, "status": "open", "stop_now": cur_stop}
+    if half:
+        out["partial"] = dict(half)
+        r_now = 0.5 * rr(half["px"]) + 0.5 * r_now
+    out["r_now"] = round(r_now, 2)
+    return out
 
 
 def plan(feed):
@@ -290,13 +319,20 @@ def run(items, bars_by_symbol, resolutions=None, wants=None):
                 wants.append({**w, "key": it["key"], "sym": it["proxy"], "dir": 1 if it["direction"] == "long" else -1,
                               "entry": e, "stop": st, "target": t})
         sign = 1 if it["direction"] == "long" else -1
+        part = res.get("partial")
+        if part:
+            part["pnl"] = round(0.5 * dollars(it["contract"], sign * (part["px"] - res["fill"])), 2)
+            part["px"] = round(part["px"], 4)
+        share = 0.5 if part else 1.0
         if "exit" in res:
-            res["pnl"] = dollars(it["contract"], sign * (res["exit"] - res["fill"]))
+            res["pnl"] = round((part["pnl"] if part else 0) + share * dollars(it["contract"], sign * (res["exit"] - res["fill"])), 2)
             res["risk"] = dollars(it["contract"], abs(e - st))
         elif res.get("status") == "open":
             last = [b for b in bars if b["d"] >= it["start"]][-1]["c"]
-            res["pnl_now"] = dollars(it["contract"], sign * (last - res["fill"]))
+            res["pnl_now"] = round((part["pnl"] if part else 0) + share * dollars(it["contract"], sign * (last - res["fill"])), 2)
             res["risk"] = dollars(it["contract"], abs(e - st))
+            if "stop_now" in res:
+                res["stop_now"] = round(res["stop_now"], 4)
         res["unit"] = "contract" if root_of(it["contract"]) in POINT_VALUE else f"{SHARES} shares"
         res["desk"] = desk_of(it["contract"])
         res["plan"] = {"entry": round(e, 6), "stop": round(st, 6), "target": round(t, 6)}

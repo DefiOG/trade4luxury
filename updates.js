@@ -2,6 +2,9 @@
    Each entry: date (YYYY-MM-DD), area, what changed, why. Plain text only.
    Keep it general: say what changed for the reader, never the exact rules or parameters. */
 window.TFL_UPDATES = [
+  { date: "2026-10-19", area: "Scorecard", title: "Free ride: locking in profits",
+    what: "Futures, stock and ETF paper trades now take profit on part of the position once a trade is well in profit, and move the stop on the rest to the entry price. The rest rides to the target risk-free. Trades show \"½ banked\" when this happens.",
+    why: "Open trades were swinging hundreds of dollars without locking anything in, so a good trade could still turn into a full loss. This trades a little of the biggest wins for far fewer winners turning into losers." },
   { date: "2026-10-19", area: "Site", title: "Tabs reordered",
     what: "Tabs now run: the three desks, then Scorecard and Paper trades, then History and Updates, then the Cheat sheet and How to use.",
     why: "Results are the second thing most people check, and on a phone they were cut off past the edge of the screen." },
