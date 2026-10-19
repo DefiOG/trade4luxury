@@ -10,6 +10,7 @@ const states=["watching","armed","triggered","invalidated","expired"];
 function timing(basis){
   return basis==="weekly"?"4–8 weeks":basis==="intraday"?"Weekly: aggressive momentum only":"2–4 weeks";
 }
+const WEEKLY_OK=["SPY","QQQ","IWM","DIA"];
 function spreadCheck(it,now){
   const s=it&&it.creditSpread,why=[];
   if(!s||typeof s!=="object")return {ok:false,why:["No spread published"],credit:null,width:null,maxLoss:null};
@@ -17,7 +18,7 @@ function spreadCheck(it,now){
   if(s.type!==(it.bias==="bullish"?"put_credit":"call_credit"))why.push("Spread type must match the bias (bullish: put credit, bearish: call credit)");
   const at=stamp(s.verifiedAt),expiry=Date.parse(String(s.expiration)+"T16:00:00-04:00"),days=(expiry-now)/86400000;
   if(!(/^\d{4}-\d\d-\d\d$/.test(s.expiration||"")&&expiry>now))why.push("Invalid expiration");
-  else if(days<7||days>45)why.push("Expiry must be 7 to 45 days out");
+  else if(days<(WEEKLY_OK.includes(it.ticker)?4:7)||days>45)why.push(WEEKLY_OK.includes(it.ticker)?"Expiry must be 4 to 45 days out":"Expiry must be 7 to 45 days out (weeklies only on SPY, QQQ, IWM, DIA)");
   if(!(Number.isFinite(at)&&at<=now&&now-at<=90000))why.push("Chain quotes are not fresh");
   if(!s.source)why.push("Missing data source");
   if(!(finite(s.underlyingPrice)&&s.underlyingPrice>0))why.push("Missing underlying price");
@@ -27,8 +28,12 @@ function spreadCheck(it,now){
   if(Number.isFinite(width)){
     if(put?!(lg.strike<sh.strike):!(lg.strike>sh.strike))why.push("Long leg must be further out of the money than the short leg");
     if(!(width>0&&width<=Math.max(5,0.02*(s.underlyingPrice||0))))why.push("Spread is too wide");
-    const tight=l=>(l.ask-l.bid)<=Math.max(0.1,0.1*(l.ask+l.bid)/2);
-    if(!tight(sh)||!tight(lg))why.push("A leg's bid/ask is too wide");
+    // Liquidity is judged on the whole spread: the natural credit may give up at most 25% of the mid credit
+    // (min 10 cents), and no single leg may be wider than 25% of its own mid (min 20 cents).
+    const midCredit=(sh.bid+sh.ask)/2-(lg.bid+lg.ask)/2,natural=sh.bid-lg.ask;
+    if(!(midCredit>0&&midCredit-natural<=Math.max(0.1,0.25*midCredit)))why.push("The spread's bid/ask is too wide");
+    const legWide=l=>(l.ask-l.bid)>Math.max(0.2,0.25*(l.ask+l.bid)/2);
+    if(legWide(sh)||legWide(lg))why.push("A leg's bid/ask is too wide");
     if(!(sh.bid>0))why.push("Short leg has no bid");
     if(finite(it.invalidation)&&(put?sh.strike>it.invalidation:sh.strike<it.invalidation))why.push("Short strike must sit beyond the stock's invalidation level");
   }
@@ -39,10 +44,10 @@ function spreadCheck(it,now){
   const credit=finite(sh.bid)&&finite(lg.ask)?+(sh.bid-lg.ask).toFixed(2):null;
   if(Number.isFinite(width)&&credit!=null){
     if(!(credit>0&&credit<width))why.push("Credit must be positive and below the width");
-    else if(credit<width*0.2)why.push("Credit is under 20% of the width");
+    else if(credit<width*0.2)why.push("Credit is under 20% of the width (under 25% return on risk)");
   }
   const maxLoss=Number.isFinite(width)&&credit!=null?+(width-credit).toFixed(2):null;
-  return {ok:!why.length,why,credit,width:Number.isFinite(width)?width:null,maxLoss};
+  return {ok:!why.length,why,credit,width:Number.isFinite(width)?width:null,maxLoss,ror:maxLoss>0&&credit!=null?+(credit/maxLoss).toFixed(3):null};
 }
 function check(it,now=Date.now()){
   const issues=[];

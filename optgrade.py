@@ -153,7 +153,9 @@ def parse_bars(raw, key="symbol"):
 
 
 SPREAD_PROFIT = 0.5   # take profit when it costs half the credit (or less) to close
-SPREAD_MIN_DTE = 5    # close inside this many calendar days to expiry
+SPREAD_MIN_DTE = 5    # close inside this many calendar days to expiry (spreads opened 11+ days out)
+WEEKLY_MIN_DTE = 1    # weeklies (opened 10 or fewer days out): close the day before expiry
+SPREAD_STOP = 2.0     # close when it costs 2x the credit to close (a loss equal to the credit)
 
 
 def grade_spread(e, p, quotes, bars, optbars, today):
@@ -165,14 +167,23 @@ def grade_spread(e, p, quotes, bars, optbars, today):
     exp = dt.date.fromisoformat(e["expiration"]) if e.get("expiration") else None
     ub = [b for b in bars.get(e["ticker"], []) if b["d"] > e["entryDate"]]
     exit_day, why = None, None
+    sbars = {b["d"]: b for b in optbars.get(e["instrumentId"], [])}
+    lbars = {b["d"]: b for b in optbars.get(e["longInstrumentId"], [])}
     for b in ub:
         if e["invalidation"] and b["c"] is not None and ((up and b["c"] < e["invalidation"]) or (not up and b["c"] > e["invalidation"])):
             exit_day, why = b["d"], "stop"
             break
+        s_, l_ = sbars.get(b["d"]), lbars.get(b["d"])
+        if s_ and l_ and s_.get("c") is not None and l_.get("c") is not None and s_["c"] - l_["c"] >= e["entry"] * SPREAD_STOP:
+            exit_day, why = b["d"], "stop"
+            break
+    if not exit_day and cost_now is not None and cost_now >= e["entry"] * SPREAD_STOP:
+        exit_day, why = today.isoformat(), "stop"
     if not exit_day and exp:
+        weekly = (exp - dt.date.fromisoformat(e["entryDate"])).days <= 10
         if today > exp:
             exit_day, why = exp.isoformat(), "expired"
-        elif (exp - today).days <= SPREAD_MIN_DTE:
+        elif (exp - today).days <= (WEEKLY_MIN_DTE if weekly else SPREAD_MIN_DTE):
             exit_day, why = today.isoformat(), "time"
     if not exit_day and cost_now is not None and cost_now <= e["entry"] * SPREAD_PROFIT:
         exit_day, why = today.isoformat(), "profit"
@@ -275,7 +286,7 @@ def grade(data, quotes, bars, optbars, today):
     n_sp = sum(1 for p in positions if p.get("kind") == "credit_spread")
     summary["spreads"] = n_sp
     return {"v": 1, "generatedAt": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
-            "method": "One contract per published, chain-verified idea: paper entry at the ask, marked at the real bid each evening; exits on the stock's invalidation or first target, after 10 trading days, inside 7 days to expiry, or at expiration. Option P&L uses option prices only. Credit spreads: collect the natural credit (short bid minus long ask); marked at the cost to close (short ask minus long bid); close on the stock's invalidation, when half the credit is earned, inside 5 days to expiry, or at expiration; return is measured on max loss.",
+            "method": "One contract per published, chain-verified idea: paper entry at the ask, marked at the real bid each evening; exits on the stock's invalidation or first target, after 10 trading days, inside 7 days to expiry, or at expiration. Option P&L uses option prices only. Credit spreads: collect the natural credit (short bid minus long ask); marked at the cost to close (short ask minus long bid); close on the stock's invalidation, when it costs 2x the credit to close, when half the credit is earned, inside 5 days to expiry (the day before expiry for weeklies), or at expiration; return is measured on max loss.",
             "positions": sorted(positions, key=lambda p: p["entryDate"], reverse=True), "summary": summary}
 
 
