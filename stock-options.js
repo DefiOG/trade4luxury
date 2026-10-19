@@ -44,7 +44,7 @@ function spreadCheck(it,now){
   const credit=finite(sh.bid)&&finite(lg.ask)?+(sh.bid-lg.ask).toFixed(2):null;
   if(Number.isFinite(width)&&credit!=null){
     if(!(credit>0&&credit<width))why.push("Credit must be positive and below the width");
-    else if(credit<width*0.2)why.push("Credit is under 20% of the width (under 25% return on risk)");
+    else if(credit<width*0.13)why.push("Credit is under 13% of the width (under 15% return on risk)");
   }
   const maxLoss=Number.isFinite(width)&&credit!=null?+(width-credit).toFixed(2):null;
   return {ok:!why.length,why,credit,width:Number.isFinite(width)?width:null,maxLoss,ror:maxLoss>0&&credit!=null?+(credit/maxLoss).toFixed(3):null};
