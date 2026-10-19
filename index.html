@@ -633,7 +633,9 @@ async function pollLive(){
     renderTrades();const h=$("#score-head");if(h)h.outerHTML=scoreHeadHtml()}catch(e){}
 }
 function startLive(){if(!PRICE_URL||liveTimer)return;pollLive();liveTimer=setInterval(pollLive,20000)}
-let TRADE_DESK="all";
+let TRADE_DESK="all",TRADE_MKT="all";
+const MKT_ROOT={MES:"ES",MNQ:"NQ",MYM:"YM",M2K:"RTY",MCL:"CL",MGC:"GC"},MKT_NAME={ES:"S&P 500 (ES/MES)",NQ:"Nasdaq (NQ/MNQ)",YM:"Dow (YM/MYM)",RTY:"Russell (RTY/M2K)",CL:"Crude oil (CL/MCL)",GC:"Gold (GC/MGC)",ZN:"10-yr note (ZN)",HG:"Copper (HG)",NG:"Nat gas (NG)",SI:"Silver (SI)","6E":"Euro (6E)","6J":"Yen (6J)"};
+const mktOf=r=>{const c=String(r.contract||"").toUpperCase().replace(/[^A-Z0-9]/g,"");return MKT_ROOT[c]||c};
 function applyLive(rs){
   const deskOf=r=>r.desk||(r.unit&&/share/.test(r.unit)?"stocks":"futures");
   rs.forEach(r=>{const lp=livePx(r.contract);r._live=false;if(lp!=null&&r.status==="open"&&r.plan&&r.fill!=null){const d=r.direction==="short"?-1:1,risk=Math.abs(r.fill-r.plan.stop);r._live=true;r._last0=r.last;r.last=lp;const pv=deskOf(r)==="stocks"?100:livePv(r.contract),hf=r.partial?0.5:1,riskP=Math.abs(r.plan.entry-r.plan.stop)||risk;r.pnl_now=(r.partial?r.partial.pnl:0)+hf*(lp-r.fill)*d*pv;r.r_now=riskP?(r.partial?0.5*((r.partial.px-r.fill)*d)/riskP:0)+hf*((lp-r.fill)*d)/riskP:r.r_now;
@@ -655,7 +657,10 @@ function renderTrades(){
   const el=$("#v-trades");
   if(!OUT){el.innerHTML=`<div class="empty">The paper trades appear after the first grading run.</div>`;return}
   const deskOf=r=>r.desk||(r.unit&&/share/.test(r.unit)?"stocks":"futures");
-  const rs=(OUT.results||[]).filter(r=>TRADE_DESK==="all"||deskOf(r)===TRADE_DESK);
+  const deskRs=(OUT.results||[]).filter(r=>TRADE_DESK==="all"||deskOf(r)===TRADE_DESK);
+  const mkts=[...new Set(deskRs.filter(r=>r.status&&r.status!=="watch"&&r.status!=="ungradable").map(mktOf))].sort();
+  if(TRADE_MKT!=="all"&&!mkts.includes(TRADE_MKT))TRADE_MKT="all";
+  const rs=deskRs.filter(r=>TRADE_MKT==="all"||mktOf(r)===TRADE_MKT);
   const px=v=>v==null?"–":(+v).toLocaleString(undefined,{maximumFractionDigits:Math.abs(v)<200?3:2});
   const usd=v=>v==null?"–":`<span class="${v>0?"pos":v<0?"neg":""}">${v>0?"+":""}${fmt$(v)}</span>`;
   const rr=v=>v==null?"–":`<span class="${v>0?"pos":v<0?"neg":""}">${fmtR(v)}</span>`;
@@ -666,7 +671,7 @@ function renderTrades(){
   const wait=rs.filter(r=>["waiting","pending"].includes(r.status));
   const closed=rs.filter(r=>["target","stop","expired"].includes(r.status)).sort((a,b)=>String(b.exit_on).localeCompare(String(a.exit_on)));
   const sum=a=>a.reduce((t,r)=>t+(r.pnl_now??r.pnl??0),0);
-  const pick=`<div class="seg" role="group" aria-label="Desk" style="margin-bottom:14px">${[["all","All"],["futures","Futures"],["stocks","Stocks &amp; ETFs"]].map(([k,l])=>`<button type="button" data-tdesk="${k}" aria-pressed="${TRADE_DESK===k}">${l}</button>`).join("")}</div>`;
+  const pick=`<div class="seg" role="group" aria-label="Desk" style="margin-bottom:14px">${[["all","All"],["futures","Futures"],["stocks","Stocks &amp; ETFs"]].map(([k,l])=>`<button type="button" data-tdesk="${k}" aria-pressed="${TRADE_DESK===k}">${l}</button>`).join("")}</div><div style="margin:-4px 0 14px"><label class="small">Market <select data-tmkt><option value="all">All markets</option>${mkts.map(m=>`<option value="${esc(m)}"${TRADE_MKT===m?" selected":""}>${esc(MKT_NAME[m]||m)}</option>`).join("")}</select></label></div>`;
   el.innerHTML=pick+`
   <div class="panel"><div class="panel-h"><h2>Open trades</h2><span class="note">${open.length} open · ${usd(sum(open))} ${open.some(r=>r._live)?"at live prices":"at the last close"}</span></div>
   ${open.length?tableHtml(["Market","Dir","Grade","Since","Entry","Stop","Target","Last","R now","P&L now"],open.map(r=>`<tr>${mk(r)}<td class="mono small">${esc(r.filled_on)}</td><td class="num">${px(r.fill)}</td><td class="num">${px(pl(r).stop)}</td><td class="num">${px(pl(r).target)}</td><td class="num">${px(r.last)}${r._live?` <span class="chip" title="Live, unofficial. Official result comes from the evening grading.">live</span>`:""}${r._hit?`<div class="note">${r._hit}</div>`:""}</td><td class="num">${rr(r.r_now)}</td><td class="num">${usd(r.pnl_now)}</td></tr>`)):'<div class="empty">No open trades right now.</div>'}</div>
@@ -676,6 +681,7 @@ function renderTrades(){
   ${closed.length?tableHtml(["Market","Dir","Grade","Closed","Result","Entry","Exit","R","P&L"],closed.map(r=>`<tr>${mk(r)}<td class="mono small">${esc(r.exit_on)}</td><td>${esc(resOf(r)[0])}${r.checked?' <span class="note">(5-min checked)</span>':""}</td><td class="num">${px(r.fill)}</td><td class="num">${px(r.exit)}</td><td class="num">${rr(r.r)}</td><td class="num">${usd(r.pnl)}</td></tr>`)):'<div class="empty">No closed trades yet.</div>'}</div>
   <p class="note" style="max-width:80ch">Every long/short idea the agent publishes is paper-traded here automatically: one contract (100 shares for stocks and ETFs), no fees. Graded each weekday evening on real prices. ${PRICE_URL?"Rows marked live use a streaming price while this tab is open and are unofficial until graded.":""}</p>`;
   el.querySelectorAll("[data-tdesk]").forEach(b=>b.addEventListener("click",()=>{TRADE_DESK=b.dataset.tdesk;renderTrades()}));
+  const ms=el.querySelector("[data-tmkt]");if(ms)ms.addEventListener("change",()=>{TRADE_MKT=ms.value;renderTrades()});
 }
 /* ---------- outcomes & scorecard ---------- */
 const RES={target:["Target hit","long"],stop:["Stopped out","short"],expired:["Time exit",""],open:["In trade","B"],waiting:["Waiting for entry",""],not_triggered:["Never triggered",""],pending:["Starts next session",""],ungradable:["Not tracked",""]};
