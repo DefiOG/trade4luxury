@@ -2,6 +2,9 @@
    Each entry: date (YYYY-MM-DD), area, what changed, why. Plain text only.
    Keep it general: say what changed for the reader, never the exact rules or parameters. */
 window.TFL_UPDATES = [
+  { date: "2026-10-19", area: "Futures", title: "Daily Nasdaq read",
+    what: "Every morning brief now includes a Nasdaq (MNQ) read: the bias, the key levels and what would turn it into a trade. When Nasdaq qualifies it's published as a paper trade like any other; otherwise it stays a watch. Paper trades can also be filtered by market (pick Nasdaq in the Market menu).",
+    why: "Most testers trade Nasdaq, and on days it didn't qualify there was nothing about it at all. A daily read is useful even when there's no trade, without forcing weak ones." },
   { date: "2026-10-19", area: "Scorecard", title: "Stale setups are skipped",
     what: "If price reaches a setup's stop or target before the entry fills, or opens well past the entry, the setup is now marked \"Skipped\" with the reason and isn't counted as a win or a loss.",
     why: "The guide already says to skip stale setups rather than chase them, and the grader was sometimes filling trades after their stop had already been hit, which no one would actually do." },
