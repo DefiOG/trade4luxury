@@ -232,6 +232,7 @@ nav.tabs{overflow-x:auto;scrollbar-width:none}
         <button role="tab" data-tab="cheat" aria-selected="false">Cheat sheet</button>
         <button role="tab" data-tab="score" aria-selected="false">Scorecard</button>
         <button role="tab" data-tab="trades" aria-selected="false">Paper trades</button>
+        <button role="tab" data-tab="updates" aria-selected="false">Updates</button>
         <a class="tablink" href="guide.html">How to use</a>
       </nav>
     </div>
@@ -244,6 +245,7 @@ nav.tabs{overflow-x:auto;scrollbar-width:none}
     <section id="v-cheat" hidden><div id="cheat"></div></section>
     <section id="v-score" hidden></section>
     <section id="v-trades" hidden></section>
+    <section id="v-updates" hidden></section>
     <p class="disclaimer">Shared for friends and family. These are one trader's hypotheses for discussion, not investment advice or a recommendation to buy or sell anything. Futures are leveraged and you can lose more than you put in. Check every level against live quotes and make your own decisions.</p>
   </main>
 </div>
@@ -413,6 +415,18 @@ window.CheatSheet=function(root,m){
 
 </script>
 <script src="stock-options.js"></script>
+<script src="updates.js"></script>
+<script>
+(function(){
+  const el=document.getElementById("v-updates"),U=window.TFL_UPDATES||[];
+  const e=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const d=v=>new Date(v+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
+  const days=[...new Set(U.map(u=>u.date))];
+  el.innerHTML='<section class="fx-panel"><div class="fx-head"><div><div class="fx-eyebrow">Changelog</div><h2>What we changed and why</h2></div></div><p class="fx-small fx-muted">Every rule change to the desks, newest first. Results from before a change were graded under the old rules.</p></section>'+
+    days.map(day=>'<section class="fx-panel"><div class="fx-eyebrow">'+e(d(day))+'</div>'+U.filter(u=>u.date===day).map(u=>
+      '<div><h3 style="margin:0 0 4px"><span class="chip">'+e(u.area)+'</span> '+e(u.title)+'</h3><p style="margin:0 0 4px">'+e(u.what)+'</p><p class="fx-small fx-muted" style="margin:0"><b>Why:</b> '+e(u.why)+'</p></div>').join("")+'</section>').join("");
+})();
+</script>
 <script>
 (function(){
 "use strict";
@@ -509,7 +523,7 @@ document.addEventListener("submit",async e=>{
 });
 document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll("nav.tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
-  ["today","stocks","options","history","cheat","score","trades"].forEach(t=>$("#v-"+t).hidden=t!==b.dataset.tab);window.scrollTo(0,0);
+  ["today","stocks","options","history","cheat","score","trades","updates"].forEach(t=>$("#v-"+t).hidden=t!==b.dataset.tab);window.scrollTo(0,0);
 }));
 
 /* ---------- rendering ---------- */
