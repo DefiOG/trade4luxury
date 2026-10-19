@@ -113,7 +113,7 @@
    "value": "3.88%",
    "signal": 0,
    "text": "Effective rate",
-   "asOf": "2026-10-15"
+   "asOf": "2026-10-16"
   },
   {
    "group": "supporting",
@@ -176,7 +176,7 @@
    "key": "curve",
    "name": "Yield curve",
    "state": "off",
-   "text": "10y − 2y = +0.35; over 3 months the 2-year moved +0.61 and the 10-year +0.53. Not recently inverted.",
+   "text": "10y − 2y = +0.35; over 3 months the 2-year moved +0.56 and the 10-year +0.54. Not recently inverted.",
    "asOf": "2026-10-16"
   }
  ],
