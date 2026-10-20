@@ -2,6 +2,9 @@
    Each entry: date (YYYY-MM-DD), area, what changed, why. Plain text only.
    Keep it general: say what changed for the reader, never the exact rules or parameters. */
 window.TFL_UPDATES = [
+  { date: "2026-10-20", area: "Options", title: "Calls and puts are now the main options lane",
+    what: "The options desk now looks for up to three calls or puts a day across the screened stocks and ETFs: near-the-money contracts a few weeks out, with tight markets. Each one is paper-traded with fixed exits: half is sold once it's up 50% (the rest then can't lose), and it's cut at a set loss or if the stock breaks its level. Credit spreads continue as a smaller side lane with stricter entry rules.",
+    why: "Buying calls and puts is how the desk's owner actually trades, and the old setup only bought a contract when a full stock trade lined up, which was rare. Spreads had become the main lane by accident." },
   { date: "2026-10-20", area: "Options", title: "Live stock price on open spreads",
     what: "Open credit spreads on the Options scorecard now show the stock's live price and how much room is left before it reaches the short strike. The spread's own value and P&L still update once a day, after the close.",
     why: "Option prices aren't available live on the site yet, but how close the stock is to the short strike is the number that matters most during the day." },

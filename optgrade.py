@@ -220,6 +220,71 @@ def grade_spread(e, p, quotes, bars, optbars, today):
     return p
 
 
+LONG_STOP = 0.40      # long calls/puts: cut when the option has lost 40% of what was paid
+LONG_HALF = 0.50      # bank half when the option is up 50% (free ride); the rest's stop moves to the entry price
+LONG_MIN_DTE = 10     # close long options with 10 or fewer days left (time decay speeds up)
+
+
+def grade_long(e, p, quotes, bars, optbars, today):
+    """Long call/put: paid the ask; daily walk on the option's own closes and the stock's bars."""
+    q = quotes.get(e["instrumentId"]) or {}
+    exp = dt.date.fromisoformat(e["expiration"]) if e.get("expiration") else None
+    up = e["bias"] != "bearish"
+    entry = e["entry"]
+    ub = {b["d"]: b for b in bars.get(e["ticker"], []) if b["d"] > e["entryDate"]}
+    ob = {b["d"]: b for b in optbars.get(e["instrumentId"], []) if b["d"] > e["entryDate"]}
+    days = sorted(set(ub) | set(ob))
+    tday = today.isoformat()
+    if q.get("bid") is not None and tday > e["entryDate"] and tday not in ob:
+        ob[tday] = {"d": tday, "h": q["bid"], "l": q["bid"], "c": q["bid"]}
+        days = sorted(set(days) | {tday})
+    half, exit_day, why, px = None, None, None, None
+    for i, d in enumerate(days):
+        o, b = ob.get(d), ub.get(d)
+        oc = o["c"] if o and o.get("c") is not None else None
+        stop_px = entry if half else entry * (1 - LONG_STOP)
+        if oc is not None and oc <= stop_px:
+            exit_day, why, px = d, ("stop" if not half else "breakeven"), oc
+            break
+        if b and e["invalidation"] and b.get("c") is not None and ((up and b["c"] < e["invalidation"]) or (not up and b["c"] > e["invalidation"])):
+            exit_day, why, px = d, "stop", oc
+            break
+        if not half and o and o.get("h") is not None and o["h"] >= entry * (1 + LONG_HALF):
+            half = {"on": d, "px": round(entry * (1 + LONG_HALF), 2)}
+        if b and e["target"] and ((up and b.get("h") is not None and b["h"] >= e["target"]) or (not up and b.get("l") is not None and b["l"] <= e["target"])):
+            exit_day, why, px = d, "target", oc
+            break
+        if i + 1 >= HOLD_DAYS:
+            exit_day, why, px = d, "time", oc
+            break
+    if not exit_day and exp:
+        if today > exp:
+            last = max(ub) if ub else None
+            lc = ub[last]["c"] if last else None
+            exit_day, why = exp.isoformat(), "expired"
+            px = max(0.0, ((lc - e["strike"]) if e["type"] == "call" else (e["strike"] - lc))) if lc is not None else 0.0
+        elif (exp - today).days <= LONG_MIN_DTE:
+            exit_day, why, px = tday, "time", q.get("bid")
+    if exit_day and px is None:
+        px = q.get("bid")
+    share = 0.5 if half else 1.0
+    banked = (half["px"] - entry) * MULT * 0.5 if half else 0.0
+    if half:
+        p["partial"] = half
+    if exit_day and px is not None:
+        pnl = round(banked + share * (px - entry) * MULT, 2)
+        p.update(status=why, exitDate=exit_day, exit=round(px, 2), pnl=pnl, ret=round(pnl / (entry * MULT), 4))
+    else:
+        if q.get("bid") is not None:
+            pn = round(banked + share * (q["bid"] - entry) * MULT, 2)
+            p.update(mark=q["bid"], markAt=q.get("at"), pnlNow=pn, retNow=round(pn / (entry * MULT), 4),
+                     delta=q.get("delta"), iv=q.get("iv"))
+        if ub:
+            p["underlyingLast"] = ub[max(ub)]["c"]
+    return p
+
+
+
 def grade(data, quotes, bars, optbars, today):
     prev = previous(data)
     positions = []
@@ -232,49 +297,8 @@ def grade(data, quotes, bars, optbars, today):
         if e.get("kind") == "credit_spread":
             positions.append(grade_spread(e, p, quotes, bars, optbars, today))
             continue
-        q = quotes.get(e["instrumentId"]) or {}
-        exp = dt.date.fromisoformat(e["expiration"]) if e.get("expiration") else None
-        up = e["bias"] != "bearish"
-        ub = [b for b in bars.get(e["ticker"], []) if b["d"] > e["entryDate"]]
-        exit_day, why = None, None
-        for i, b in enumerate(ub):
-            if e["invalidation"] and b["c"] is not None and ((up and b["c"] < e["invalidation"]) or (not up and b["c"] > e["invalidation"])):
-                exit_day, why = b["d"], "stop"
-                break
-            if e["target"] and ((up and b["h"] is not None and b["h"] >= e["target"]) or (not up and b["l"] is not None and b["l"] <= e["target"])):
-                exit_day, why = b["d"], "target"
-                break
-            if i + 1 >= HOLD_DAYS:
-                exit_day, why = b["d"], "time"
-                break
-        if not exit_day and exp:
-            if today > exp:
-                exit_day, why = exp.isoformat(), "expired"
-            elif (exp - today).days <= MIN_DTE:
-                exit_day, why = today.isoformat(), "time"
-        if exit_day:
-            if why == "expired":
-                last = (ub[-1]["c"] if ub else None)
-                px = max(0.0, ((last - e["strike"]) if e["type"] == "call" else (e["strike"] - last))) if last is not None else 0.0
-                src = "intrinsic"
-            elif exit_day == today.isoformat() and q.get("bid") is not None:
-                px, src = q["bid"], "bid"
-            else:
-                ob = {b["d"]: b for b in optbars.get(e["instrumentId"], [])}
-                if exit_day in ob and ob[exit_day]["c"] is not None:
-                    px, src = ob[exit_day]["c"], "option close"
-                else:
-                    px, src = q.get("bid"), "late: current bid"
-            if px is not None:
-                p.update(status=why, exitDate=exit_day, exit=round(px, 2), exitSource=src,
-                         pnl=round((px - e["entry"]) * MULT, 2), ret=round(px / e["entry"] - 1, 4))
-        if p["status"] == "open":
-            if q.get("bid") is not None:
-                p.update(mark=q["bid"], markAt=q.get("at"), pnlNow=round((q["bid"] - e["entry"]) * MULT, 2),
-                         retNow=round(q["bid"] / e["entry"] - 1, 4), delta=q.get("delta"), iv=q.get("iv"))
-            if ub:
-                p["underlyingLast"] = ub[-1]["c"]
-        positions.append(p)
+        positions.append(grade_long(e, p, quotes, bars, optbars, today))
+        continue
     closed = [p for p in positions if p["status"] != "open"]
     opened = [p for p in positions if p["status"] == "open"]
     wins = [p for p in closed if (p.get("pnl") or 0) > 0]
@@ -286,7 +310,7 @@ def grade(data, quotes, bars, optbars, today):
     n_sp = sum(1 for p in positions if p.get("kind") == "credit_spread")
     summary["spreads"] = n_sp
     return {"v": 1, "generatedAt": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
-            "method": "One contract per published, chain-verified idea: paper entry at the ask, marked at the real bid each evening; exits on the stock's invalidation or first target, after 10 trading days, inside 7 days to expiry, or at expiration. Option P&L uses option prices only. Credit spreads: collect the natural credit (short bid minus long ask); marked at the cost to close (short ask minus long bid); close on the stock's invalidation, when it costs 2x the credit to close, when half the credit is earned, inside 5 days to expiry (the day before expiry for weeklies), or at expiration; return is measured on max loss.",
+            "method": "Calls and puts: one contract per published, chain-verified idea, bought at the ask and marked at the real bid each evening. Half is sold once the option is up 50% (the rest then stops out at the entry price); otherwise it is cut at a 40% loss of premium or when the stock breaks its level, and closed at the stock's first target, after 10 trading days or with 10 days left to expiry. Option P&L uses option prices only. Credit spreads: collect the natural credit (short bid minus long ask); marked at the cost to close (short ask minus long bid); close on the stock's invalidation, when it costs 2x the credit to close, when half the credit is earned, inside 5 days to expiry (the day before expiry for weeklies), or at expiration; return is measured on max loss.",
             "positions": sorted(positions, key=lambda p: p["entryDate"], reverse=True), "summary": summary}
 
 

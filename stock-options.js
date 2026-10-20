@@ -65,7 +65,7 @@ function check(it,now=Date.now()){
   const reward=Array.isArray(it.targets)?d*(it.targets[0]-it.trigger):NaN;
   const rr=risk>0&&reward>0?reward/risk:null;
   if(rr==null)issues.push("Levels do not match direction");
-  else if(rr<2&&it.lane!=="credit")issues.push("First target offers less than 2:1");
+  else if(it.lane!=="credit"&&rr<(it.lane==="long"?1.5:2))issues.push(it.lane==="long"?"First target offers less than 1.5:1":"First target offers less than 2:1");
   if(Array.isArray(it.targets)&&it.targets.some((v,i)=>i>0&&d*(v-it.targets[i-1])<=0))issues.push("Targets must follow price direction");
   let status=states.includes(it.status)?it.status:"watching";
   const q=it.quote||{},qt=stamp(q.at),fresh=finite(q.price)&&q.price>0&&q.feed==="realtime"&&Number.isFinite(qt)&&qt<=now&&now-qt<=90000;
@@ -78,7 +78,7 @@ function check(it,now=Date.now()){
       issues.push("Activation requires a completed-bar trigger, real-time quote and timestamped fill reference");
     }
     const actualRisk=d*(a.entry-it.invalidation),actualReward=d*((it.targets||[])[0]-a.entry);
-    if(!(actualRisk>0&&actualReward>0&&(it.lane==="credit"||actualReward/actualRisk>=2)))issues.push("Activation entry must still offer 2:1");
+    if(!(actualRisk>0&&actualReward>0&&(it.lane==="credit"||actualReward/actualRisk>=(it.lane==="long"?1.5:2))))issues.push("Activation entry must still offer 2:1");
   }
   if(issues.length&&["armed","triggered"].includes(status))status="watching";
   const c=it.optionCandidate;
