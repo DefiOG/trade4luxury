@@ -627,10 +627,11 @@ const liveSym=c=>LPX_SYM[c]||c,livePv=c=>LPX_PV[c]||100;
 function livePx(c){const q=LPX[liveSym(c)];return q&&q.p!=null?q.p:null}
 async function pollLive(){
   if(!PRICE_URL||!OUT||document.hidden)return;
-  const syms=[...new Set((OUT.results||[]).filter(r=>["open","waiting","pending"].includes(r.status)).map(r=>liveSym(r.contract)))];
+  const optP=((FEED&&FEED.optionsDesk&&FEED.optionsDesk.outcomes&&FEED.optionsDesk.outcomes.positions)||[]).filter(p=>p.status==="open").map(p=>p.ticker);
+  const syms=[...new Set([...(OUT.results||[]).filter(r=>["open","waiting","pending"].includes(r.status)).map(r=>liveSym(r.contract)),...optP])];
   if(!syms.length)return;
   try{const r=await fetch(PRICE_URL+"?s="+encodeURIComponent(syms.join(",")));if(!r.ok)return;LPX=await r.json();LPX_AT=Date.now();
-    renderTrades();const h=$("#score-head");if(h)h.outerHTML=scoreHeadHtml()}catch(e){}
+    renderTrades();const h=$("#score-head");if(h)h.outerHTML=scoreHeadHtml();if(SCORE_DESK==="options"&&!$("#v-score").hidden)renderScore()}catch(e){}
 }
 function startLive(){if(!PRICE_URL||liveTimer)return;pollLive();liveTimer=setInterval(pollLive,20000)}
 let TRADE_DESK="all",TRADE_MKT="all";
@@ -699,6 +700,7 @@ function optionsLedgerHtml(){
   const L=FEED&&FEED.optionsDesk&&FEED.optionsDesk.outcomes;const P=(L&&L.positions)||[];if(!P.length)return "";
   const S=L.summary||{},usd=v=>v==null?"–":`<span class="${v>0?"pos":v<0?"neg":""}">${v>0?"+":""}${fmt$(v)}</span>`,pc=v=>v==null?"–":`<span class="${v>0?"pos":v<0?"neg":""}">${v>0?"+":""}${Math.round(v*100)}%</span>`;
   const isSp=p=>p.kind==="credit_spread";
+  const stockNow=p=>{const lp=livePx(p.ticker);if(lp==null)return p.underlyingLast!=null?`<span class="note">$${(+p.underlyingLast).toFixed(2)} close</span>`:"–";const call=p.type==="call_credit",cush=call?(p.strike-lp)/lp:(lp-p.strike)/lp;return `$${lp.toFixed(2)} <span class="chip">live</span><div class="note ${cush<0?"neg":cush<0.01?"":"pos"}">${cush<0?"past":"cushion"} ${Math.abs(cush*100).toFixed(1)}% ${cush<0?"the":"to"} short strike</div>`};
   const name=p=>isSp(p)?`<b class="mono">${esc(p.ticker)}</b> <span class="mono small">${esc(p.strike)}/${esc(p.longStrike)}${p.type==="put_credit"?"P":"C"} ${esc(String(p.expiration||"").slice(5))}</span><div class="note">${p.type==="put_credit"?"Put":"Call"} credit spread</div>`:`<b class="mono">${esc(p.ticker)}</b> <span class="mono small">${esc(p.strike)}${p.type==="put"?"P":"C"} ${esc(String(p.expiration||"").slice(5))}</span>`;
   const tile=(l,v)=>`<div class="stat"><div class="eyebrow">${l}</div><b>${v}</b></div>`;
   const D=P.filter(p=>!isSp(p)),C=P.filter(isSp);
@@ -710,8 +712,8 @@ function optionsLedgerHtml(){
   const dir=tbl(D,["Contract","Opened","Paid","Bid now","Return","P&L"],["Contract","Closed","Why","Paid","Sold","Return","P&L"],
     p=>`<tr><td>${name(p)}</td><td class="mono small">${esc(p.entryDate)}</td><td class="num">$${(+p.entry).toFixed(2)}</td><td class="num">${p.mark!=null?"$"+(+p.mark).toFixed(2):"–"}</td><td class="num">${pc(p.retNow)}</td><td class="num">${usd(p.pnlNow)}</td></tr>`,
     p=>`<tr><td>${name(p)}</td><td class="mono small">${esc(p.exitDate)}</td><td class="small">${esc(why[p.status]||p.status)}</td><td class="num">$${(+p.entry).toFixed(2)}</td><td class="num">$${(+p.exit).toFixed(2)}</td><td class="num">${pc(p.ret)}</td><td class="num">${usd(p.pnl)}</td></tr>`,"contracts","Bought at the ask, marked at the real bid");
-  const spr=tbl(C,["Spread","Opened","Credit","Cost to close","Max loss","Return on risk","P&L"],["Spread","Closed","Why","Credit","Cost to close","Return on risk","P&L"],
-    p=>`<tr><td>${name(p)}</td><td class="mono small">${esc(p.entryDate)}</td><td class="num">$${(+p.entry).toFixed(2)}</td><td class="num">${p.mark!=null?"$"+(+p.mark).toFixed(2):"–"}</td><td class="num">$${(+p.maxLoss).toFixed(2)}</td><td class="num">${pc(p.retNow)}</td><td class="num">${usd(p.pnlNow)}</td></tr>`,
+  const spr=tbl(C,["Spread","Stock now","Opened","Credit","Cost to close","Max loss","Return on risk","P&L"],["Spread","Closed","Why","Credit","Cost to close","Return on risk","P&L"],
+    p=>`<tr><td>${name(p)}</td><td class="num">${stockNow(p)}</td><td class="mono small">${esc(p.entryDate)}</td><td class="num">$${(+p.entry).toFixed(2)}</td><td class="num">${p.mark!=null?"$"+(+p.mark).toFixed(2):"–"}</td><td class="num">$${(+p.maxLoss).toFixed(2)}</td><td class="num">${pc(p.retNow)}</td><td class="num">${usd(p.pnlNow)}</td></tr>`,
     p=>`<tr><td>${name(p)}</td><td class="mono small">${esc(p.exitDate)}</td><td class="small">${esc(why[p.status]||p.status)}</td><td class="num">$${(+p.entry).toFixed(2)}</td><td class="num">$${(+p.exit).toFixed(2)}</td><td class="num">${pc(p.ret)}</td><td class="num">${usd(p.pnl)}</td></tr>`,"credit spreads","Credit collected at the natural price; valued at what it would cost to close");
   return `<div class="stats">${tile("Overall",usd((S.pnlClosed||0)+(S.pnlOpen||0)))}${tile("Closed",`${usd(S.pnlClosed)} <span class="note">(${S.closed||0})</span>`)}${tile("Open",`${usd(S.pnlOpen)} <span class="note">(${S.open||0})</span>`)}${tile("Win rate",S.win==null?"–":Math.round(S.win*100)+"%")}</div>
   ${spr}${dir}
