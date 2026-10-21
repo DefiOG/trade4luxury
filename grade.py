@@ -75,6 +75,18 @@ FETCH_JS = r"""await (async () => {
         const b = [d, +q.open[i].toPrecision(8), +q.high[i].toPrecision(8), +q.low[i].toPrecision(8), +q.close[i].toPrecision(8)];
         bars.push(b); sum += b[4]; n++;
       });
+      // Yahoo's daily history sometimes lacks today's bar for stocks/ETFs; rebuild it from 5-minute bars.
+      const mt = x.meta.regularMarketTime, md = mt ? new Date((mt + x.meta.gmtoffset) * 1000).toISOString().slice(0, 10) : null;
+      if (!s.endsWith("=F") && md && (!bars.length || bars[bars.length - 1][0] < md) && md >= start) {
+        try {
+          const y = (await (await fetch("https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(s) + "?interval=5m&range=1d")).json()).chart.result[0], z = y.indicators.quote[0];
+          let o = null, h = -Infinity, l = Infinity, c = null;
+          y.timestamp.forEach((t, i) => { if ([z.open[i], z.high[i], z.low[i], z.close[i]].some(v => v == null)) return;
+            if (new Date((t + y.meta.gmtoffset) * 1000).toISOString().slice(0, 10) !== md) return;
+            if (o === null) o = z.open[i]; h = Math.max(h, z.high[i]); l = Math.min(l, z.low[i]); c = z.close[i]; });
+          if (o !== null) { const b = [md, +o.toPrecision(8), +h.toPrecision(8), +l.toPrecision(8), +c.toPrecision(8)]; bars.push(b); sum += b[4]; n++; }
+        } catch (e) {}
+      }
       out[s] = bars;
     } catch (e) { out[s] = "ERR " + e.message; }
   }
