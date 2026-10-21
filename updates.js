@@ -2,6 +2,9 @@
    Each entry: date (YYYY-MM-DD), area, what changed, why. Plain text only.
    Keep it general: say what changed for the reader, never the exact rules or parameters. */
 window.TFL_UPDATES = [
+  { date: "2026-10-20", area: "Scorecard", title: "Fixed stale stock prices in grading",
+    what: "Stock and ETF paper trades are now graded on the current day's prices. Before this fix, the evening grading sometimes used the previous day's close for stocks, so open trades showed old P&L and trades that filled that day showed as pending.",
+    why: "On Oct 20 the live prices showed the stock trades in profit all day, but the scorecard showed them in the red after grading. The live numbers were right." },
   { date: "2026-10-20", area: "Options", title: "Calls and puts are now the main options lane",
     what: "The options desk now looks for up to three calls or puts a day across the screened stocks and ETFs: near-the-money contracts a few weeks out, with tight markets. Each one is paper-traded with fixed exits: half is sold once it's up 50% (the rest then can't lose), and it's cut at a set loss or if the stock breaks its level. Credit spreads continue as a smaller side lane with stricter entry rules.",
     why: "Buying calls and puts is how the desk's owner actually trades, and the old setup only bought a contract when a full stock trade lined up, which was rare. Spreads had become the main lane by accident." },
