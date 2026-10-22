@@ -2,6 +2,18 @@
    Each entry: date (YYYY-MM-DD), area, what changed, why. Plain text only.
    Keep it general: say what changed for the reader, never the exact rules or parameters. */
 window.TFL_UPDATES = [
+  { date: "2026-10-22", area: "Scorecard", title: "Prop account tracker",
+    what: "A new \"Prop 50K\" view on the Scorecard runs the futures ideas through a 50K Apex and a 50K Topstep evaluation as day trades: sized in micros, everything closed by the firm's daily cut-off, with the profit target, drawdown limit and daily rules applied. It shows the profit so far, the room left before the limit, and every pass or fail. When an evaluation ends, a new one starts.",
+    why: "Most testers trade prop accounts, which don't allow holding overnight. The swing results alone overstate what a prop account would have made, so this tracks that case honestly." },
+  { date: "2026-10-22", area: "Scorecard", title: "Your account size",
+    what: "Scorecard and Paper trades now have a \"Your account\" box. Enter your account size and how much you risk per trade, then switch to \"My size\" to see every trade and total at your own size. Saved only in your browser.",
+    why: "One contract or a fixed share count means very different things in a $5,000 account and a $100,000 one." },
+  { date: "2026-10-22", area: "Scorecard", title: "Money tied up",
+    what: "The Scorecard now shows how much money the open trades tie up: futures margin, the cost of stock positions and the most the open options can lose, and what share of your account that is.",
+    why: "Holding every idea at once can need more money than an account has. This makes that visible before it matters." },
+  { date: "2026-10-22", area: "Stocks", title: "Stock trades sized by risk",
+    what: "Stock and ETF paper trades are now sized so the stop risks about $500, instead of a flat 100 shares. Past stock trades were recalculated the same way.",
+    why: "With a flat 100 shares, a $520 ETF tied up $52,000 while a $68 one tied up $6,800, so the results mostly reflected share price, not the quality of the idea." },
   { date: "2026-10-20", area: "Scorecard", title: "Fixed stale stock prices in grading",
     what: "Stock and ETF paper trades are now graded on the current day's prices. Before this fix, the evening grading sometimes used the previous day's close for stocks, so open trades showed old P&L and trades that filled that day showed as pending.",
     why: "On Oct 20 the live prices showed the stock trades in profit all day, but the scorecard showed them in the red after grading. The live numbers were right." },

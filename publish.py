@@ -94,6 +94,7 @@ def build_feed(data: pathlib.Path, keep_days: int, include_trades: bool) -> dict
         "optionsDesk": {"v": 1, "scans": options_scans, "outcomes": one("options_outcomes", "latest")},
         "regime": regime,
         "positioning": positioning,
+        "prop": one("prop", "latest"),  # prop-account tracker (from the grading Action)
         "trades": trades,
     }
 

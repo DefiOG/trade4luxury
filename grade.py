@@ -11,7 +11,7 @@ Runs each weekday evening from a scheduled task (no access code needed):
      verified so a partly copied file can't produce wrong grades.
   3. Each long/short idea with numeric entry, stop and target is walked through
      the daily bars with the rules below; results are in R (multiples of risk)
-     and paper dollars (one contract, or 100 shares for ETFs/stocks).
+     and paper dollars (one futures contract; stocks/ETFs sized to about $500 of risk).
   4. `--plain-out export/outcomes/latest.json` writes the results; pushing the
      export makes the GitHub Action encrypt them into the shared feed.
 
@@ -130,12 +130,22 @@ POINT_VALUE = {
     "CL": 1000, "MCL": 100, "NG": 10000, "GC": 100, "MGC": 10, "SI": 5000, "HG": 25000,
     "ZC": 50, "ZS": 50, "ZW": 50, "6E": 125000, "6J": 12500000,
 }
-SHARES = 100  # stocks and ETFs: paper P&L per 100 shares
+SHARES = 100  # legacy fixed size for stocks and ETFs (still used when a trade has no stop distance)
+STOCK_RISK = 500  # stocks and ETFs: paper size = shares that risk about $500 between entry and stop
+# Approximate overnight (maintenance) margin per contract, Oct 2026 broker tables; used only to show
+# how much money the open trades tie up. Exchanges change these often.
+MARGIN = {"MES": 2881, "MNQ": 4638, "MYM": 1698, "M2K": 1183, "MGC": 2320, "MCL": 948, "ZN": 2062,
+          "ES": 28810, "NQ": 46380, "YM": 16980, "RTY": 11830, "GC": 23200, "CL": 9480}
 
 
-def dollars(contract: str, points: float) -> float:
+def shares_for(entry: float, stop: float) -> int:
+    d = abs(entry - stop)
+    return max(1, int(STOCK_RISK // d)) if d > 0 else SHARES
+
+
+def dollars(contract: str, points: float, shares: int = SHARES) -> float:
     root = root_of(contract)
-    return round(points * POINT_VALUE.get(root, SHARES), 2)
+    return round(points * POINT_VALUE.get(root, shares), 2)
 FILL_WINDOW = {"intraday": 1, "swing": 3, "position": 10}
 SKIP_GAP_R = 0.5  # a breakout that opens this many R past entry is not chased
 FREE_RIDE_R = 1.0  # bank half at +1R, stop to entry on the rest
@@ -341,21 +351,26 @@ def run(items, bars_by_symbol, resolutions=None, wants=None):
                 wants.append({**w, "key": it["key"], "sym": it["proxy"], "dir": 1 if it["direction"] == "long" else -1,
                               "entry": e, "stop": st, "target": t})
         sign = 1 if it["direction"] == "long" else -1
+        is_fut = root_of(it["contract"]) in POINT_VALUE
+        qty = 1 if is_fut else shares_for(e, st)
+        D = lambda c, pts: dollars(c, pts, qty)
         part = res.get("partial")
         if part:
-            part["pnl"] = round(0.5 * dollars(it["contract"], sign * (part["px"] - res["fill"])), 2)
+            part["pnl"] = round(0.5 * D(it["contract"], sign * (part["px"] - res["fill"])), 2)
             part["px"] = round(part["px"], 4)
         share = 0.5 if part else 1.0
         if "exit" in res:
-            res["pnl"] = round((part["pnl"] if part else 0) + share * dollars(it["contract"], sign * (res["exit"] - res["fill"])), 2)
-            res["risk"] = dollars(it["contract"], abs(e - st))
+            res["pnl"] = round((part["pnl"] if part else 0) + share * D(it["contract"], sign * (res["exit"] - res["fill"])), 2)
+            res["risk"] = D(it["contract"], abs(e - st))
         elif res.get("status") == "open":
             last = [b for b in bars if b["d"] >= it["start"]][-1]["c"]
-            res["pnl_now"] = round((part["pnl"] if part else 0) + share * dollars(it["contract"], sign * (last - res["fill"])), 2)
-            res["risk"] = dollars(it["contract"], abs(e - st))
+            res["pnl_now"] = round((part["pnl"] if part else 0) + share * D(it["contract"], sign * (last - res["fill"])), 2)
+            res["risk"] = D(it["contract"], abs(e - st))
+            res["capital"] = MARGIN.get(root_of(it["contract"])) if is_fut else round(res["fill"] * qty, 2)
             if "stop_now" in res:
                 res["stop_now"] = round(res["stop_now"], 4)
-        res["unit"] = "contract" if root_of(it["contract"]) in POINT_VALUE else f"{SHARES} shares"
+        res["unit"] = "contract" if is_fut else f"{qty} shares"
+        res["qty"] = qty
         res["desk"] = desk_of(it["contract"])
         res["plan"] = {"entry": round(e, 6), "stop": round(st, 6), "target": round(t, 6)}
         if res.get("status") == "open":
@@ -389,7 +404,7 @@ def _card(results):
     for r in results:
         counts[r.get("status", "?")] = counts.get(r.get("status", "?"), 0) + 1
     micro = {"MES": "ES", "MNQ": "NQ", "MYM": "YM", "M2K": "RTY", "MCL": "CL", "MGC": "GC"}
-    # Paper account: one contract (or 100 shares) per idea, in the order trades closed.
+    # Paper account: one futures contract (stocks sized by risk) per idea, in the order trades closed.
     curve, run_total = [], 0.0
     for r in sorted(closed, key=lambda r: (r.get("exit_on") or "", r.get("key") or "")):
         run_total += r.get("pnl", 0)
@@ -397,6 +412,8 @@ def _card(results):
     open_rows = [r for r in results if r.get("status") == "open"]
     paper = {"closed": round(run_total, 2), "open": round(sum(r.get("pnl_now", 0) for r in open_rows), 2),
              "openCount": len(open_rows), "curve": curve,
+             "capital": round(sum(r.get("capital") or 0 for r in open_rows), 2),
+             "capitalUnknown": sum(1 for r in open_rows if r.get("capital") is None),
              "best": max((r.get("pnl", 0) for r in closed), default=0), "worst": min((r.get("pnl", 0) for r in closed), default=0)}
     return {"overall": agg(closed), "paper": paper, "byGrade": by("grade"), "byMarket": by("contract", lambda c: micro.get(root_of(c), root_of(c))),
             "byTimeframe": by("timeframe"), "counts": counts}
@@ -482,7 +499,7 @@ def main() -> int:
         print(RESOLVE_JS.replace("__CASES__", json.dumps(cases)) if cases else "NO_UNCLEAR_DAYS")
         return 0
     doc = {"v": 1, "generatedAt": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
-           "method": "Paper trades graded on real daily futures prices (Yahoo continuous front month; ETFs and stocks by ticker). One contract (or 100 shares) per idea. When a daily bar can't show whether the fill, stop or target came first, the day is replayed on 5-minute bars; if that isn't available the stop is counted first.",
+           "method": "Paper trades graded on real daily futures prices (Yahoo continuous front month; ETFs and stocks by ticker). One futures contract per idea; stocks and ETFs sized so the stop risks about $500. When a daily bar can't show whether the fill, stop or target came first, the day is replayed on 5-minute bars; if that isn't available the stop is counted first.",
            "results": results, "summary": scorecard(results)}
     if a.out:
         if len(norm(code)) < 12 and not a.plain:

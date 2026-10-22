@@ -199,6 +199,9 @@ td.mono.small{white-space:nowrap}
 .seg button{background:none;border:0;padding:8px 14px;min-height:40px;font:inherit;font-size:14px;color:inherit;cursor:pointer}
 .seg button+button{border-left:1px solid var(--line-strong,#B4C0CC)}
 .seg button[aria-pressed="true"]{background:var(--accent-soft,#DCE8F2);font-weight:700}
+.acct-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end}
+.acct-row label{display:grid;gap:4px}
+.pbar{height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden;margin-top:6px}.pbar span{display:block;height:100%;background:var(--accent)}
 nav.tabs{overflow-x:auto;scrollbar-width:none}
 </style>
 </head>
@@ -335,7 +338,7 @@ window.PaperPanel=function(root,out){
   <div class="fx-stats">${tile("Closed trades",`${money(p.closed)} <span class="fx-small fx-muted">(${nClosed} closed)</span>`,cls(p.closed))}${tile("Open trades",`${money(p.open)} <span class="fx-small fx-muted">(${p.openCount} open)</span>`,cls(p.open))}${tile("Best / worst closed",nClosed>=2?`${money(p.best)} / ${money(p.worst)}`:"–",nClosed>=2?"":"fx-muted")}</div>
   <p class="fx-small fx-muted">Open trades are valued at the last close and can still change until they hit their stop, target or time limit. Every trade is listed on the Paper trades tab.</p>
   ${p.curve&&p.curve.length>1?curveSvg(p.curve):'<p class="fx-small fx-muted">The equity curve appears after the second closed setup.</p>'}
-  <p class="fx-small fx-muted">Every setup the agent publishes is paper-traded automatically: one contract of the market it names (100 shares for ETFs and stocks), entered and exited by the grading rules, on real daily futures prices. No fees or slippage. Full-size contracts make swings big; the R columns compare setups fairly regardless of size.</p></section>`;
+  <p class="fx-small fx-muted">Every setup the agent publishes is paper-traded automatically: one futures contract (stocks and ETFs sized so the stop risks about $500), entered and exited by the grading rules, on real daily futures prices. No fees or slippage. Full-size contracts make swings big; the R columns compare setups fairly regardless of size.</p></section>`;
 };
 })();
 /* Economic cheat sheet renderer, shared by the Futures Desk dashboard and the friends site.
@@ -416,6 +419,7 @@ window.CheatSheet=function(root,m){
 </script>
 <script src="stock-options.js"></script>
 <script src="updates.js"></script>
+<script src="account.js"></script>
 <script>
 (function(){
   const el=document.getElementById("v-updates"),U=window.TFL_UPDATES||[];
@@ -604,7 +608,7 @@ function renderToday(){
 }
 function renderStocks(){
   const secs=(FEED.scans||[]).filter(s=>s.kind==="sectors"||s.kind==="stocks").sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
-  const intro=`<div class="panel"><div class="panel-h"><div><div class="eyebrow">Stocks &amp; ETFs desk</div><h2>Sector rotation &amp; stock scans</h2></div></div><p class="muted" style="max-width:72ch">Each weekday at 8:10 ET: which sectors are leading and lagging, how that fits the business cycle, and 1–3 sector ETF or stock ideas scored and graded the same way as the futures ideas (paper size 100 shares).</p></div>`;
+  const intro=`<div class="panel"><div class="panel-h"><div><div class="eyebrow">Stocks &amp; ETFs desk</div><h2>Sector rotation &amp; stock scans</h2></div></div><p class="muted" style="max-width:72ch">Each weekday at 8:10 ET: which sectors are leading and lagging, how that fits the business cycle, and 1–3 sector ETF or stock ideas scored and graded the same way as the futures ideas (paper size: enough shares to risk about $500 to the stop).</p></div>`;
   if(!secs.length){$("#v-stocks").innerHTML=intro+`<div class="empty">No sector scans yet. The next one arrives at 8:10 ET on the next trading day.</div>`;return}
   $("#v-stocks").innerHTML=intro+block(secs[0],true)+secs.slice(1).map(s=>block(s,false)).join("");
 }
@@ -639,20 +643,20 @@ const MKT_ROOT={MES:"ES",MNQ:"NQ",MYM:"YM",M2K:"RTY",MCL:"CL",MGC:"GC"},MKT_NAME
 const mktOf=r=>{const c=String(r.contract||"").toUpperCase().replace(/[^A-Z0-9]/g,"");return MKT_ROOT[c]||c};
 function applyLive(rs){
   const deskOf=r=>r.desk||(r.unit&&/share/.test(r.unit)?"stocks":"futures");
-  rs.forEach(r=>{const lp=livePx(r.contract);r._live=false;if(lp!=null&&r.status==="open"&&r.plan&&r.fill!=null){const d=r.direction==="short"?-1:1,risk=Math.abs(r.fill-r.plan.stop);r._live=true;r._last0=r.last;r.last=lp;const pv=deskOf(r)==="stocks"?100:livePv(r.contract),hf=r.partial?0.5:1,riskP=Math.abs(r.plan.entry-r.plan.stop)||risk;r.pnl_now=(r.partial?r.partial.pnl:0)+hf*(lp-r.fill)*d*pv;r.r_now=riskP?(r.partial?0.5*((r.partial.px-r.fill)*d)/riskP:0)+hf*((lp-r.fill)*d)/riskP:r.r_now;
+  rs.forEach(r=>{const lp=livePx(r.contract);r._live=false;if(lp!=null&&r.status==="open"&&r.plan&&r.fill!=null){const d=r.direction==="short"?-1:1,risk=Math.abs(r.fill-r.plan.stop);r._live=true;r._last0=r.last;r.last=lp;const pv=deskOf(r)==="stocks"?(r.qty||100):livePv(r.contract),hf=r.partial?0.5:1,riskP=Math.abs(r.plan.entry-r.plan.stop)||risk;r.pnl_now=(r.partial?r.partial.pnl:0)+hf*(lp-r.fill)*d*pv;r.r_now=riskP?(r.partial?0.5*((r.partial.px-r.fill)*d)/riskP:0)+hf*((lp-r.fill)*d)/riskP:r.r_now;
     const sN=r.stop_now??r.plan.stop;r._hit=(d>0?lp<=sN:lp>=sN)?(r.partial?"breakeven stop crossed":"stop level crossed"):(d>0?lp>=r.plan.target:lp<=r.plan.target)?"target level crossed":""}
   else if(lp!=null&&["waiting","pending"].includes(r.status)){r._lp=lp}});
 }
 function scoreHeadHtml(){
   const rs=(OUT.results||[]).filter(r=>r.status!=="not_triggered");applyLive(rs);
   const closed=rs.filter(r=>["target","stop","expired"].includes(r.status)),open=rs.filter(r=>r.status==="open");
-  const cl=closed.reduce((t,r)=>t+(r.pnl||0),0),op=open.reduce((t,r)=>t+(r.pnl_now||0),0);
-  const w=closed.filter(r=>(r.pnl||0)>0).length,tot=cl+op,anyLive=open.some(r=>r._live);
+  const cl=closed.reduce((t,r)=>t+(Acct.money(r)||0),0),op=open.reduce((t,r)=>t+(Acct.money(r)||0),0);
+  const w=closed.filter(r=>(r.r??r.pnl??0)>0).length,tot=cl+op,anyLive=open.some(r=>r._live);
   const cR=closed.reduce((t,r)=>t+(r.r||0),0),oR=open.reduce((t,r)=>t+(r.r_now||0),0);
   const sg=v=>v>0?"pos":v<0?"neg":"",money=v=>(v>0?"+":"")+fmt$(v);
   const t=(l,v,sub,c="")=>`<div class="stat"><div class="eyebrow">${l}</div><b class="${c}">${v}</b><div class="note">${sub}</div></div>`;
   return `<div class="panel" id="score-head"><div class="panel-h"><h2>How it's doing</h2><span class="note">Futures + Stocks &amp; ETFs · ${anyLive?'<span class="chip">live</span> unofficial until tonight\'s grading':"as of the last official grading"}</span></div>
-  <div class="stats">${t("Total paper P&amp;L",money(tot),`${fmtR(cR+oR)} across ${closed.length+open.length} trades`,sg(tot))}${t("Open now",money(op),`${open.length} trade${open.length===1?"":"s"} running`,sg(op))}${t("Closed",closed.length?`${w}–${closed.length-w}`:"–",closed.length?`${money(cl)} · ${Math.round(w/closed.length*100)}% won`:"none closed yet",sg(cl))}</div></div>`;
+  <div class="stats">${t(Acct.get().mode==="mine"?"Total at your size":"Total paper P&amp;L",money(tot),`${fmtR(cR+oR)} across ${closed.length+open.length} trades`,sg(tot))}${t("Open now",money(op),`${open.length} trade${open.length===1?"":"s"} running`,sg(op))}${t("Closed",closed.length?`${w}–${closed.length-w}`:"–",closed.length?`${money(cl)} · ${Math.round(w/closed.length*100)}% won`:"none closed yet",sg(cl))}${Acct.capitalHtml(open,FEED)}</div></div>`;
 }
 function renderTrades(){
   const el=$("#v-trades");
@@ -671,16 +675,17 @@ function renderTrades(){
   const open=rs.filter(r=>r.status==="open").sort((a,b)=>(b.pnl_now||0)-(a.pnl_now||0));
   const wait=rs.filter(r=>["waiting","pending"].includes(r.status));
   const closed=rs.filter(r=>["target","stop","expired"].includes(r.status)).sort((a,b)=>String(b.exit_on).localeCompare(String(a.exit_on)));
-  const sum=a=>a.reduce((t,r)=>t+(r.pnl_now??r.pnl??0),0);
+  const sum=a=>a.reduce((t,r)=>t+(Acct.money(r)||0),0);
   const pick=`<div class="seg" role="group" aria-label="Desk" style="margin-bottom:14px">${[["all","All"],["futures","Futures"],["stocks","Stocks &amp; ETFs"]].map(([k,l])=>`<button type="button" data-tdesk="${k}" aria-pressed="${TRADE_DESK===k}">${l}</button>`).join("")}</div><div style="margin:-4px 0 14px"><label class="small">Market <select data-tmkt><option value="all">All markets</option>${mkts.map(m=>`<option value="${esc(m)}"${TRADE_MKT===m?" selected":""}>${esc(MKT_NAME[m]||m)}</option>`).join("")}</select></label></div>`;
-  el.innerHTML=pick+`
+  el.innerHTML=Acct.settingsHtml()+pick+`
   <div class="panel"><div class="panel-h"><h2>Open trades</h2><span class="note">${open.length} open · ${usd(sum(open))} ${open.some(r=>r._live)?"at live prices":"at the last close"}</span></div>
-  ${open.length?tableHtml(["Market","Dir","Grade","Since","Entry","Stop","Target","Last","R now","P&L now"],open.map(r=>`<tr>${mk(r)}<td class="mono small">${esc(r.filled_on)}</td><td class="num">${px(r.fill)}</td><td class="num">${px(pl(r).stop)}</td><td class="num">${px(pl(r).target)}</td><td class="num">${px(r.last)}${r._live?` <span class="chip" title="Live, unofficial. Official result comes from the evening grading.">live</span>`:""}${r._hit?`<div class="note">${r._hit}</div>`:""}</td><td class="num">${rr(r.r_now)}</td><td class="num">${usd(r.pnl_now)}</td></tr>`)):'<div class="empty">No open trades right now.</div>'}</div>
+  ${open.length?tableHtml(["Market","Dir","Grade","Since","Entry","Stop","Target","Last","R now","P&L now"],open.map(r=>`<tr>${mk(r)}<td class="mono small">${esc(r.filled_on)}</td><td class="num">${px(r.fill)}</td><td class="num">${px(pl(r).stop)}</td><td class="num">${px(pl(r).target)}</td><td class="num">${px(r.last)}${r._live?` <span class="chip" title="Live, unofficial. Official result comes from the evening grading.">live</span>`:""}${r._hit?`<div class="note">${r._hit}</div>`:""}</td><td class="num">${rr(r.r_now)}</td><td class="num">${usd(Acct.money(r))}</td></tr>`)):'<div class="empty">No open trades right now.</div>'}</div>
   <div class="panel"><div class="panel-h"><h2>Waiting for entry</h2><span class="note">Published; the entry price hasn't been reached yet</span></div>
   ${wait.length?tableHtml(["Market","Dir","Grade","Published","Entry","Stop","Target"],wait.map(r=>`<tr>${mk(r)}<td class="mono small">${esc(r.date)}</td><td class="num">${px(pl(r).entry)}</td><td class="num">${px(pl(r).stop)}</td><td class="num">${px(pl(r).target)}${r._lp!=null?`<div class="note">live ${px(r._lp)}</div>`:""}</td></tr>`)):'<div class="empty">Nothing waiting.</div>'}</div>
   <div class="panel"><div class="panel-h"><h2>Closed trades</h2><span class="note">${closed.length} closed · ${usd(sum(closed))}</span></div>
-  ${closed.length?tableHtml(["Market","Dir","Grade","Closed","Result","Entry","Exit","R","P&L"],closed.map(r=>`<tr>${mk(r)}<td class="mono small">${esc(r.exit_on)}</td><td>${esc(resOf(r)[0])}${r.checked?' <span class="note">(5-min checked)</span>':""}</td><td class="num">${px(r.fill)}</td><td class="num">${px(r.exit)}</td><td class="num">${rr(r.r)}</td><td class="num">${usd(r.pnl)}</td></tr>`)):'<div class="empty">No closed trades yet.</div>'}</div>
-  <p class="note" style="max-width:80ch">Every long/short idea the agent publishes is paper-traded here automatically: one contract (100 shares for stocks and ETFs), no fees. Graded each weekday evening on real prices. ${PRICE_URL?"Rows marked live use a streaming price while this tab is open and are unofficial until graded.":""}</p>`;
+  ${closed.length?tableHtml(["Market","Dir","Grade","Closed","Result","Entry","Exit","R","P&L"],closed.map(r=>`<tr>${mk(r)}<td class="mono small">${esc(r.exit_on)}</td><td>${esc(resOf(r)[0])}${r.checked?' <span class="note">(5-min checked)</span>':""}</td><td class="num">${px(r.fill)}</td><td class="num">${px(r.exit)}</td><td class="num">${rr(r.r)}</td><td class="num">${usd(Acct.money(r))}</td></tr>`)):'<div class="empty">No closed trades yet.</div>'}</div>
+  <p class="note" style="max-width:80ch">Every long/short idea the agent publishes is paper-traded here automatically: one futures contract, stocks and ETFs sized so the stop risks about $500, no fees. Switch to "My size" above to see every trade at your own risk per trade. Graded each weekday evening on real prices. ${PRICE_URL?"Rows marked live use a streaming price while this tab is open and are unofficial until graded.":""}</p>`;
+  Acct.bindSettings(el,()=>{renderTrades();renderScore()});
   el.querySelectorAll("[data-tdesk]").forEach(b=>b.addEventListener("click",()=>{TRADE_DESK=b.dataset.tdesk;renderTrades()}));
   const ms=el.querySelector("[data-tmkt]");if(ms)ms.addEventListener("change",()=>{TRADE_MKT=ms.value;renderTrades()});
 }
@@ -692,7 +697,7 @@ function resultHtml(o){
   if(!o||o.status==="watch")return "";
   const [label,cls]=resOf(o);
   const usd=v=>v==null?"":` <span class="mono small ${v>0?"pos":v<0?"neg":""}">${v>0?"+":""}${fmt$(v)}</span>`;
-  const r=o.r!=null?` <b class="mono ${o.r>0?"pos":o.r<0?"neg":""}">${fmtR(o.r)}</b>${usd(o.pnl)}`:o.r_now!=null?` <span class="mono muted">now ${fmtR(o.r_now)}</span>${usd(o.pnl_now)}`:"";
+  const r=o.r!=null?` <b class="mono ${o.r>0?"pos":o.r<0?"neg":""}">${fmtR(o.r)}</b>${usd(Acct.money(o))}`:o.r_now!=null?` <span class="mono muted">now ${fmtR(o.r_now)}</span>${usd(Acct.money(o))}`:"";
   const when=o.exit_on?` <span class="note">${esc(o.exit_on)}</span>`:o.filled_on?` <span class="note">since ${esc(o.filled_on)}</span>`:"";
   return `<div class="result"><span class="eyebrow">Result</span> <span class="chip ${cls}">${esc(label)}</span>${r}${when}${o.note?`<div class="note">${esc(o.note)}</div>`:""}</div>`;
 }
@@ -725,24 +730,26 @@ function renderScore(){
   if(!OUT){el.innerHTML=`<div class="empty">The first results arrive after tonight's grading run, once setups have had time to play out.</div>`;return}
   const all=OUT.summary||{},desks=all.desks||null,deskOf=r=>r.desk||(r.unit&&/share/.test(r.unit)?"stocks":"futures");
   const s=desks?(desks[SCORE_DESK]||{}):all,o=s.overall||{};
-  const pick=desks?`<div class="seg" role="group" aria-label="Desk" style="margin-bottom:14px">${[["futures","Futures"],["stocks","Stocks &amp; ETFs"],["options","Options"]].map(([k,l])=>`<button type="button" data-desk="${k}" aria-pressed="${SCORE_DESK===k}">${l}</button>`).join("")}</div>`:"";
+  const pick=desks?`<div class="seg" role="group" aria-label="Desk" style="margin-bottom:14px">${[["futures","Futures"],["stocks","Stocks &amp; ETFs"],["options","Options"],["prop","Prop 50K"]].map(([k,l])=>`<button type="button" data-desk="${k}" aria-pressed="${SCORE_DESK===k}">${l}</button>`).join("")}</div>`:"";
   const tile=(l,v,c="")=>`<div class="stat"><div class="eyebrow">${l}</div><b class="${c}">${v}</b></div>`;
   const pct=x=>x==null?"–":Math.round(x*100)+"%";
-  const rowsOf=(obj,label)=>Object.entries(obj||{}).filter(([,v])=>v.n).map(([k,v])=>`<tr><td>${label(k)}</td><td class="num">${v.n}</td><td class="num">${pct(v.win)}</td><td class="num ${v.avgR>0?"pos":v.avgR<0?"neg":""}">${fmtR(v.avgR)}</td><td class="num ${v.totalR>0?"pos":v.totalR<0?"neg":""}">${fmtR(v.totalR)}</td><td class="num ${v.pnl>0?"pos":v.pnl<0?"neg":""}">${v.pnl!=null?fmt$(v.pnl):"–"}</td></tr>`);
+  const rowsOf=(obj,label)=>Object.entries(obj||{}).filter(([,v])=>v.n).map(([k,v])=>`<tr><td>${label(k)}</td><td class="num">${v.n}</td><td class="num">${pct(v.win)}</td><td class="num ${v.avgR>0?"pos":v.avgR<0?"neg":""}">${fmtR(v.avgR)}</td><td class="num ${v.totalR>0?"pos":v.totalR<0?"neg":""}">${fmtR(v.totalR)}</td>${(()=>{const m=Acct.get().mode==="mine"?v.totalR*Acct.get().risk:v.pnl;return `<td class="num ${m>0?"pos":m<0?"neg":""}">${m!=null?fmt$(m):"–"}</td>`})()}</tr>`);
   const head=["","Closed","Win %","Avg R","Total R","Paper $"];
   const gradeLbl=k=>["A","B","C"].includes(k)?`<span class="chip ${k}">${k}-setup</span>`:esc(k);
   const c=s.counts||{},recent=(OUT.results||[]).filter(r=>!desks||deskOf(r)===SCORE_DESK).filter(r=>["target","stop","expired"].includes(r.status)).sort((a,b)=>String(b.exit_on).localeCompare(String(a.exit_on))).slice(0,15);
   const d=new Date(OUT.generatedAt);
+  if(SCORE_DESK==="prop"){el.innerHTML=pick+Acct.propHtml(FEED);el.querySelectorAll("[data-desk]").forEach(b=>b.addEventListener("click",()=>{SCORE_DESK=b.dataset.desk;renderScore()}));return}
   if(desks&&SCORE_DESK==="options"&&optionsLedgerHtml()){el.innerHTML=pick+optionsLedgerHtml();el.querySelectorAll("[data-desk]").forEach(b=>b.addEventListener("click",()=>{SCORE_DESK=b.dataset.desk;renderScore()}));return}
   if(desks&&SCORE_DESK==="options"){el.innerHTML=pick+`<div class="panel"><div class="panel-h"><h2>Options scorecard</h2></div><p class="muted" style="max-width:72ch">No option contracts have been published yet, so there is nothing to grade. The first one appears when a setup passes the desk's live option-chain checks.</p><p class="small" style="max-width:72ch"><b>How options will be graded:</b> paper entry at the <b>ask</b> when the contract is published; marked each evening at the contract's real <b>bid</b>; exit when the stock hits its stop or target, at a time stop, or at expiration, always at that day's real option price. Results show return on premium and paper P&amp;L per contract (×100), next to whether the stock call itself worked. Option results are never inferred from the stock's move.</p></div>`;el.querySelectorAll("[data-desk]").forEach(b=>b.addEventListener("click",()=>{SCORE_DESK=b.dataset.desk;renderScore()}));return}
-  el.innerHTML=pick+scoreHeadHtml()+`<div id="fx-paper"></div><div class="stats">${tile("Closed setups",o.n||0)}${tile("Win rate",pct(o.win))}${tile("Avg R per setup",o.n?fmtR(o.avgR):"–",o.avgR>0?"pos":o.avgR<0?"neg":"")}${tile("Total R",o.n?fmtR(o.totalR):"–",o.totalR>0?"pos":o.totalR<0?"neg":"")}</div>
+  el.innerHTML=Acct.settingsHtml()+pick+scoreHeadHtml()+`<div id="fx-paper"></div><div class="stats">${tile("Closed setups",o.n||0)}${tile("Win rate",pct(o.win))}${tile("Avg R per setup",o.n?fmtR(o.avgR):"–",o.avgR>0?"pos":o.avgR<0?"neg":"")}${tile("Total R",o.n?fmtR(o.totalR):"–",o.totalR>0?"pos":o.totalR<0?"neg":"")}</div>
   <p class="note">Right now: ${c.open||0} in a trade, ${c.waiting||0} waiting for entry, ${c.not_triggered||0} never triggered, ${c.skipped||0} skipped as stale.</p>
   <div class="panel"><div class="panel-h"><h2>By grade</h2><span class="note">If A-setups don't beat B-setups, the scoring needs work.</span></div>${tableHtml(head,rowsOf(s.byGrade,gradeLbl))||'<div class="empty">No closed setups yet.</div>'}</div>
   <div class="panel"><div class="panel-h"><h2>By market</h2></div>${tableHtml(head,rowsOf(s.byMarket,k=>`<b class="mono">${esc(k)}</b>`))||'<div class="empty">No closed setups yet.</div>'}</div>
   <div class="panel"><div class="panel-h"><h2>By timeframe</h2></div>${tableHtml(head,rowsOf(s.byTimeframe,esc))||'<div class="empty">No closed setups yet.</div>'}</div>
-  ${recent.length?`<div class="panel"><div class="panel-h"><h2>Latest results</h2></div>${tableHtml(["Closed","Mkt","Dir","Grade","Result","R","Paper $"],recent.map(r=>`<tr><td class="mono small">${esc(r.exit_on)}</td><td class="mono"><b>${esc(r.contract)}</b></td><td><span class="chip ${dirCls(r.direction)}">${esc(r.direction)}</span></td><td>${r.grade?`<span class="chip ${esc(r.grade)}">${esc(r.grade)}</span>`:"–"}</td><td>${esc(resOf(r)[0])}</td><td class="num ${r.r>0?"pos":"neg"}">${fmtR(r.r)}</td><td class="num ${r.pnl>0?"pos":r.pnl<0?"neg":""}">${r.pnl!=null?fmt$(r.pnl):"–"}</td></tr>`))}</div>`:""}
-  <p class="note" style="max-width:80ch">How grading works: every setup with numeric levels is checked against real daily futures prices after each weekday close (stocks and ETFs against their own prices). If a day touches both the stop and the target, it counts as a stop, so results lean conservative. Paper dollars assume one contract per setup (100 shares for ETFs), no fees. Last graded ${isNaN(d)?"–":esc(d.toLocaleString(undefined,{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}))}. ${c.ungradable?`${c.ungradable} setup${c.ungradable>1?"s":""} aren't tracked because their levels were written as conditions rather than prices.`:""}</p>`;
+  ${recent.length?`<div class="panel"><div class="panel-h"><h2>Latest results</h2></div>${tableHtml(["Closed","Mkt","Dir","Grade","Result","R","Paper $"],recent.map(r=>`<tr><td class="mono small">${esc(r.exit_on)}</td><td class="mono"><b>${esc(r.contract)}</b></td><td><span class="chip ${dirCls(r.direction)}">${esc(r.direction)}</span></td><td>${r.grade?`<span class="chip ${esc(r.grade)}">${esc(r.grade)}</span>`:"–"}</td><td>${esc(resOf(r)[0])}</td><td class="num ${r.r>0?"pos":"neg"}">${fmtR(r.r)}</td>${(()=>{const m=Acct.money(r);return `<td class="num ${m>0?"pos":m<0?"neg":""}">${m!=null?fmt$(m):"–"}</td>`})()}</tr>`))}</div>`:""}
+  <p class="note" style="max-width:80ch">How grading works: every setup with numeric levels is checked against real daily futures prices after each weekday close (stocks and ETFs against their own prices). If a day touches both the stop and the target, it counts as a stop, so results lean conservative. Paper dollars assume one futures contract per setup and stocks/ETFs sized so the stop risks about $500, no fees ("My size" rescales every trade to your risk per trade). Last graded ${isNaN(d)?"–":esc(d.toLocaleString(undefined,{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}))}. ${c.ungradable?`${c.ungradable} setup${c.ungradable>1?"s":""} aren't tracked because their levels were written as conditions rather than prices.`:""}</p>`;
   window.PaperPanel&&PaperPanel($("#fx-paper"),desks?Object.assign({},OUT,{summary:s}):OUT);
+  Acct.bindSettings(el,()=>{renderScore();renderTrades()});
   el.querySelectorAll("[data-desk]").forEach(b=>b.addEventListener("click",()=>{SCORE_DESK=b.dataset.desk;renderScore()}));
 }
 function renderAll(){
