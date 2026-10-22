@@ -14,10 +14,10 @@
   {
    "group": "growth",
    "name": "Jobless claims",
-   "value": "199k (4-wk avg)",
+   "value": "198k (4-wk avg)",
    "signal": 0,
    "text": "About the same as the last 6 months",
-   "asOf": "2026-10-10"
+   "asOf": "2026-10-17"
   },
   {
    "group": "growth",
@@ -94,10 +94,10 @@
   {
    "group": "stress",
    "name": "Junk-bond spreads",
-   "value": "3.33 pts (+0.67 in a month)",
+   "value": "3.27 pts (+0.59 in a month)",
    "signal": 0,
    "text": "Calm credit markets",
-   "asOf": "2026-10-20"
+   "asOf": "2026-10-21"
   },
   {
    "group": "stress",
@@ -169,7 +169,7 @@
    "key": "freight",
    "name": "Freight and shipping",
    "state": "off",
-   "text": "Cass shipments +1.9% y/y; truck tonnage -2.4% over 3 months; dry-bulk shipping (BDRY) -6% over 45 trading days. No sustained break.",
+   "text": "Cass shipments +1.9% y/y; truck tonnage -2.4% over 3 months; dry-bulk shipping (BDRY) -8% over 45 trading days. No sustained break.",
    "asOf": "2026-09-01"
   },
   {
