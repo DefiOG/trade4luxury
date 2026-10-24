@@ -1,200 +1,198 @@
 {
- "asOf": "2026-10-13",
+ "asOf": "2026-10-20",
  "rows": [
   {
    "sym": "ES",
    "name": "S&P 500",
-   "net": -140995,
-   "chg": 13075,
-   "pctOI": -7.3,
-   "pct": 29,
+   "net": -142671,
+   "chg": -1676,
+   "pctOI": -7.4,
+   "pct": 28,
    "flag": "",
    "note": "",
-   "asOf": "2026-10-13"
+   "asOf": "2026-10-20"
   },
   {
    "sym": "NQ",
    "name": "Nasdaq-100",
-   "net": 48523,
-   "chg": -9600,
-   "pctOI": 17.4,
+   "net": 50726,
+   "chg": 2203,
+   "pctOI": 18.6,
    "pct": 97,
    "flag": "crowded long",
    "note": "",
-   "asOf": "2026-10-13"
+   "asOf": "2026-10-20"
   },
   {
    "sym": "RTY",
    "name": "Russell 2000",
-   "net": -61003,
-   "chg": 26842,
-   "pctOI": -13.7,
-   "pct": 18,
+   "net": -41909,
+   "chg": 19094,
+   "pctOI": -9,
+   "pct": 29,
    "flag": "",
    "note": "",
-   "asOf": "2026-10-13"
+   "asOf": "2026-10-20"
   },
   {
    "sym": "ZT",
    "name": "2-yr Note",
-   "net": -911579,
-   "chg": -58675,
-   "pctOI": -20,
-   "pct": 97,
+   "net": -856783,
+   "chg": 54796,
+   "pctOI": -18.9,
+   "pct": 99,
    "flag": "",
    "note": "least short in 3 yrs",
-   "asOf": "2026-10-13"
+   "asOf": "2026-10-20"
   },
   {
    "sym": "ZN",
    "name": "10-yr Note",
-   "net": -988102,
-   "chg": -91621,
-   "pctOI": -17,
-   "pct": 25,
+   "net": -964293,
+   "chg": 23809,
+   "pctOI": -16.4,
+   "pct": 34,
    "flag": "",
    "note": "",
-   "asOf": "2026-10-13"
+   "asOf": "2026-10-20"
   },
   {
    "sym": "ZB",
    "name": "30-yr Bond",
-   "net": -126438,
-   "chg": -6626,
-   "pctOI": -6.8,
-   "pct": 27,
+   "net": -68419,
+   "chg": 58019,
+   "pctOI": -3.8,
+   "pct": 47,
    "flag": "",
    "note": "",
-   "asOf": "2026-10-13"
+   "asOf": "2026-10-20"
   },
   {
    "sym": "GC",
    "name": "Gold",
-   "net": 207879,
-   "chg": -2456,
-   "pctOI": 52.4,
-   "pct": 75,
+   "net": 199865,
+   "chg": -8014,
+   "pctOI": 49.7,
+   "pct": 63,
    "flag": "",
    "note": "",
-   "asOf": "2026-10-13"
+   "asOf": "2026-10-20"
   },
   {
    "sym": "SI",
    "name": "Silver",
-   "net": 22631,
-   "chg": -522,
-   "pctOI": 20.9,
-   "pct": 23,
+   "net": 19795,
+   "chg": -2836,
+   "pctOI": 17.4,
+   "pct": 9,
    "flag": "",
-   "note": "",
-   "asOf": "2026-10-13"
+   "note": "least long in 3 yrs",
+   "asOf": "2026-10-20"
   },
   {
    "sym": "HG",
    "name": "Copper",
-   "net": 68520,
-   "chg": -914,
-   "pctOI": 21.8,
-   "pct": 76,
+   "net": 57397,
+   "chg": -11123,
+   "pctOI": 17.5,
+   "pct": 60,
    "flag": "",
    "note": "",
-   "asOf": "2026-10-13"
+   "asOf": "2026-10-20"
   },
   {
    "sym": "CL",
    "name": "Crude oil (WTI)",
-   "net": 100343,
-   "chg": 1283,
-   "pctOI": 5.3,
-   "pct": 17,
+   "net": 89325,
+   "chg": -11018,
+   "pctOI": 4.9,
+   "pct": 14,
    "flag": "",
    "note": "",
-   "asOf": "2026-10-13"
+   "asOf": "2026-10-20"
   },
   {
    "sym": "NG",
    "name": "Natural gas",
-   "net": -233578,
-   "chg": 2861,
-   "pctOI": -13.4,
+   "net": -241272,
+   "chg": -7694,
+   "pctOI": -14.1,
    "pct": 1,
    "flag": "crowded short",
    "note": "",
-   "asOf": "2026-10-13"
+   "asOf": "2026-10-20"
   },
   {
    "sym": "DX",
    "name": "US dollar index",
-   "net": 12919,
-   "chg": 908,
-   "pctOI": 24.9,
-   "pct": 74,
+   "net": 15044,
+   "chg": 2125,
+   "pctOI": 30.5,
+   "pct": 78,
    "flag": "",
    "note": "",
-   "asOf": "2026-10-13"
+   "asOf": "2026-10-20"
   },
   {
    "sym": "6E",
    "name": "Euro",
-   "net": -137573,
-   "chg": -38241,
-   "pctOI": -15.7,
+   "net": -134524,
+   "chg": 3049,
+   "pctOI": -15.3,
    "pct": 1,
    "flag": "crowded short",
    "note": "",
-   "asOf": "2026-10-13"
+   "asOf": "2026-10-20"
   },
   {
    "sym": "6J",
    "name": "Japanese yen",
-   "net": 50207,
-   "chg": -12118,
-   "pctOI": 13.4,
-   "pct": 69,
+   "net": 69878,
+   "chg": 19671,
+   "pctOI": 18.4,
+   "pct": 74,
    "flag": "",
    "note": "",
-   "asOf": "2026-10-13"
+   "asOf": "2026-10-20"
   },
   {
    "sym": "ZC",
    "name": "Corn",
-   "net": 358367,
-   "chg": -94106,
-   "pctOI": 19.4,
-   "pct": 90,
-   "flag": "crowded long",
+   "net": 286689,
+   "chg": -71678,
+   "pctOI": 15.6,
+   "pct": 82,
+   "flag": "",
    "note": "",
-   "asOf": "2026-10-13"
+   "asOf": "2026-10-20"
   },
   {
    "sym": "ZS",
    "name": "Soybeans",
-   "net": 271099,
-   "chg": -2797,
-   "pctOI": 25.3,
-   "pct": 98,
-   "flag": "crowded long",
+   "net": 246596,
+   "chg": -24503,
+   "pctOI": 22.5,
+   "pct": 88,
+   "flag": "",
    "note": "",
-   "asOf": "2026-10-13"
+   "asOf": "2026-10-20"
   },
   {
    "sym": "ZW",
    "name": "Wheat",
-   "net": -17606,
-   "chg": -1558,
-   "pctOI": -3.5,
-   "pct": 86,
+   "net": -29270,
+   "chg": -11664,
+   "pctOI": -5.7,
+   "pct": 75,
    "flag": "",
    "note": "",
-   "asOf": "2026-10-13"
+   "asOf": "2026-10-20"
   }
  ],
  "crowded": [
   "NQ crowded long",
   "NG crowded short",
-  "6E crowded short",
-  "ZC crowded long",
-  "ZS crowded long"
+  "6E crowded short"
  ],
  "method": "Speculators' (non-commercial) net futures position as a share of open interest, ranked against the last 3 years. 90th percentile or higher = crowded long; 10th or lower = crowded short. Crowded trades unwind hard on surprises, so the scorer gives no positioning point to a trade in the crowded direction. Treasury futures are skewed by hedge-fund basis trades (structurally short), so read bond positioning loosely. Data: CFTC Commitments of Traders (positions as of Tuesday, published Friday)."
 }
