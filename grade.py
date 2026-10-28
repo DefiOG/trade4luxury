@@ -32,8 +32,10 @@ Rules (deliberately conservative, daily bars only):
     on the fill bar itself, except for intraday ideas.
   * Skipped (not counted): before the entry fills, price touches the stop or
     the target, or a breakout opens more than half the risk past the entry.
-  * Free ride: once a trade reaches +1R, half is banked there and the stop on
-    the other half moves to the fill price.
+  * Futures free ride: once a trade reaches +1.5R, half is banked there and the
+    stop on the other half moves to the fill price.
+  * Stocks/ETFs: the whole position is taken off at +1.25R (or the target if nearer).
+  * From Oct 28, an idea is skipped while the same market and direction is already open.
   * Time limit after the fill: intraday exits at that day's close, swing after
     10 bars, position after 40 bars ("expired", exit at the close).
 """
@@ -148,7 +150,9 @@ def dollars(contract: str, points: float, shares: int = SHARES) -> float:
     return round(points * POINT_VALUE.get(root, shares), 2)
 FILL_WINDOW = {"intraday": 1, "swing": 3, "position": 10}
 SKIP_GAP_R = 0.5  # a breakout that opens this many R past entry is not chased
-FREE_RIDE_R = 1.0  # bank half at +1R, stop to entry on the rest
+FREE_RIDE_R = 1.5  # futures: bank half at +1.5R, stop to entry on the rest (was 1.0R until Oct 28)
+STOCK_TAKE_R = 1.25  # stocks/ETFs: whole position out at +1.25R (or the target if nearer), no partial
+DEDUPE_FROM = "2026-10-28"  # from this date, an idea is skipped while the same market and direction is already open
 HOLD_LIMIT = {"intraday": 1, "swing": 10, "position": 40}
 KEEP_DAYS = 90
 
@@ -189,7 +193,7 @@ def grade_of(score):
 
 
 # ---------------------------------------------------------------- engine
-def simulate(bars, scan_date, direction, timeframe, entry, stop, target, resolve=None, want=None):
+def simulate(bars, scan_date, direction, timeframe, entry, stop, target, resolve=None, want=None, stock=False):
     """Return dict(status, r, filled_on, exit_on, fill, exit) on proxy-scale levels.
 
     A daily bar can't show whether the fill or the stop/target came first. Those days
@@ -229,8 +233,14 @@ def simulate(bars, scan_date, direction, timeframe, entry, stop, target, resolve
     rr = lambda px: sign * (px - fill) / risk
     limit = HOLD_LIMIT[tf]
     held = after[fill_i: fill_i + limit]
-    # Free ride: at +1R bank half the position and move the stop on the rest to the fill.
+    # Free ride (futures): at +1.5R bank half the position and move the stop on the rest to the fill.
     p1 = fill + sign * risk * FREE_RIDE_R
+    take = None
+    if stock:  # stocks fade after about +1.25R: take it all there, no partial
+        tk = fill + sign * risk * STOCK_TAKE_R
+        if sign * (target - tk) > 0:
+            target, take = tk, STOCK_TAKE_R
+        p1 = fill + sign * risk * 1e9  # never
     half = None  # {"on": date, "px": price} once half is banked
     cur_stop = stop
     base = {"filled_on": after[fill_i]["d"], "fill": fill}
@@ -238,6 +248,8 @@ def simulate(bars, scan_date, direction, timeframe, entry, stop, target, resolve
     def done(status, px, day, **kw):
         r = rr(px)
         out = {**base, "status": status, "exit_on": day, "exit": px, **kw}
+        if take and status == "target":
+            out["take"] = take
         if half:
             out["partial"] = dict(half)
             r = 0.5 * rr(half["px"]) + 0.5 * r
@@ -345,7 +357,8 @@ def run(items, bars_by_symbol, resolutions=None, wants=None):
                     e, st, t = e * k, st * k, t * k
         resolve = {k.split("|")[-1]: v for k, v in (resolutions or {}).items() if k.rsplit("|", 1)[0] == it["key"]}
         want = []
-        res.update(simulate(bars, it["start"], it["direction"], it["timeframe"], e, st, t, resolve, want))
+        res.update(simulate(bars, it["start"], it["direction"], it["timeframe"], e, st, t, resolve, want,
+                            stock=root_of(it["contract"]) not in POINT_VALUE))
         if wants is not None:
             for w in want:
                 wants.append({**w, "key": it["key"], "sym": it["proxy"], "dir": 1 if it["direction"] == "long" else -1,
@@ -380,7 +393,26 @@ def run(items, bars_by_symbol, resolutions=None, wants=None):
                 res[f] = round(res[f], 4)
         res.pop("start", None)
         out.append(res)
-    return out
+    return dedupe(out)
+
+
+MICRO_ROOT = {"MES": "ES", "MNQ": "NQ", "MYM": "YM", "M2K": "RTY", "MCL": "CL", "MGC": "GC"}
+
+
+def dedupe(results):
+    """From DEDUPE_FROM on, skip an idea that fills while the same market and direction is already open."""
+    mk = lambda r: (MICRO_ROOT.get(root_of(r["contract"]), root_of(r["contract"])), r.get("direction"))
+    held = {}
+    for r in sorted([r for r in results if r.get("filled_on")], key=lambda r: (r["filled_on"], r.get("date", ""), r.get("key", ""))):
+        k, f = mk(r), r["filled_on"]
+        busy = [x for x in held.get(k, []) if x["filled_on"] <= f and (x.get("exit_on") is None or x["exit_on"] > f)]
+        if busy and str(r.get("date", "")) >= DEDUPE_FROM:
+            for fld in ("fill", "filled_on", "exit", "exit_on", "r", "r_now", "pnl", "pnl_now", "partial", "stop_now", "last", "capital", "risk", "take", "checked"):
+                r.pop(fld, None)
+            r.update(status="skipped", skip="duplicate", skip_on=f, note=f"Same {k[0]} {k[1]} already open ({busy[0]['key']}).")
+            continue
+        held.setdefault(k, []).append(r)
+    return results
 
 
 def _card(results):
@@ -499,7 +531,7 @@ def main() -> int:
         print(RESOLVE_JS.replace("__CASES__", json.dumps(cases)) if cases else "NO_UNCLEAR_DAYS")
         return 0
     doc = {"v": 1, "generatedAt": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
-           "method": "Paper trades graded on real daily futures prices (Yahoo continuous front month; ETFs and stocks by ticker). One futures contract per idea; stocks and ETFs sized so the stop risks about $500. When a daily bar can't show whether the fill, stop or target came first, the day is replayed on 5-minute bars; if that isn't available the stop is counted first.",
+           "method": "Paper trades graded on real daily futures prices (Yahoo continuous front month; ETFs and stocks by ticker). One futures contract per idea; stocks and ETFs sized so the stop risks about $500. Exits: futures bank half at +1.5R and move the rest to break-even; stocks and ETFs are closed in full at +1.25R or the target, whichever is nearer. From Oct 28 an idea is skipped while the same market and direction is already open. When a daily bar can't show whether the fill, stop or target came first, the day is replayed on 5-minute bars; if that isn't available the stop is counted first.",
            "results": results, "summary": scorecard(results)}
     if a.out:
         if len(norm(code)) < 12 and not a.plain:

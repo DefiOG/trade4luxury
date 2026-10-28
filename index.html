@@ -691,8 +691,8 @@ function renderTrades(){
 }
 /* ---------- outcomes & scorecard ---------- */
 const RES={target:["Target hit","long"],stop:["Stopped out","short"],expired:["Time exit",""],open:["In trade","B"],waiting:["Waiting for entry",""],not_triggered:["Never triggered",""],pending:["Starts next session",""],ungradable:["Not tracked",""]};
-const SKIP={stop:"Skipped: stop level hit before entry",target:"Skipped: ran to target without a fill",gap:"Skipped: opened too far past entry, not chased"};
-const resOf=o=>{if(o.status==="skipped")return[SKIP[o.skip]||"Skipped",""];const b=RES[o.status]||[o.status,""];if(!o.partial)return b;if(o.status==="stop")return["½ banked, rest out at entry","B"];if(o.status==="open")return["In trade · ½ banked","B"];return[b[0]+" · ½ banked at +1R",b[1]]};
+const SKIP={stop:"Skipped: stop level hit before entry",target:"Skipped: ran to target without a fill",gap:"Skipped: opened too far past entry, not chased",duplicate:"Skipped: same trade already open"};
+const resOf=o=>{if(o.status==="skipped")return[SKIP[o.skip]||"Skipped",""];const b=o.take&&o.status==="target"?[`Profit taken at +${o.take}R`,"long"]:(RES[o.status]||[o.status,""]);if(!o.partial)return b;if(o.status==="stop")return["½ banked, rest out at entry","B"];if(o.status==="open")return["In trade · ½ banked","B"];return[b[0]+" · ½ banked early",b[1]]};
 function resultHtml(o){
   if(!o||o.status==="watch")return "";
   const [label,cls]=resOf(o);

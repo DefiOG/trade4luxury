@@ -2,6 +2,9 @@
    Each entry: date (YYYY-MM-DD), area, what changed, why. Plain text only.
    Keep it general: say what changed for the reader, never the exact rules or parameters. */
 window.TFL_UPDATES = [
+  { date: "2026-10-28", area: "Scorecard", title: "Exits tuned per desk",
+    what: "Futures trades now bank half a little later in the move, then let the rest run to the target with the stop at break-even. Stock and ETF trades now take the whole profit earlier instead of waiting for a far target. A new idea is also skipped while the same market and direction is already open, so one view is never counted twice. Past trades were regraded with the new exits.",
+    why: "Looking back over every trade so far, futures winners usually kept running well past the first profit level, so banking half too early gave up a lot. Stock trades tended to peak sooner and then fade back. The sample is still small, so this will be checked again as more trades close." },
   { date: "2026-10-22", area: "Scorecard", title: "Prop account tracker",
     what: "A new \"Prop 50K\" view on the Scorecard runs the futures ideas through a 50K Apex and a 50K Topstep evaluation as day trades: sized in micros, everything closed by the firm's daily cut-off, with the profit target, drawdown limit and daily rules applied. It shows the profit so far, the room left before the limit, and every pass or fail. When an evaluation ends, a new one starts.",
     why: "Most testers trade prop accounts, which don't allow holding overnight. The swing results alone overstate what a prop account would have made, so this tracks that case honestly." },
