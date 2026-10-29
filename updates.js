@@ -2,6 +2,9 @@
    Each entry: date (YYYY-MM-DD), area, what changed, why. Plain text only.
    Keep it general: say what changed for the reader, never the exact rules or parameters. */
 window.TFL_UPDATES = [
+  { date: "2026-10-29", area: "Options", title: "Stricter contracts for calls and puts",
+    what: "Calls and puts are now bought with more time left (about six weeks instead of four), only in contracts that actually trade every day, and only when a normal day's move in the stock is worth several times the option's daily time decay. They're closed earlier, while plenty of time is still left, and can be held a little longer before the time limit.",
+    why: "Two of the first contracts traded only a handful of times on the day they were checked, and short-dated contracts lose value fastest to time decay. More time gives a setup room to work without the clock doing the damage." },
   { date: "2026-10-28", area: "Scorecard", title: "Exits tuned per desk",
     what: "Futures trades now bank half a little later in the move, then let the rest run to the target with the stop at break-even. Stock and ETF trades now take the whole profit earlier instead of waiting for a far target. A new idea is also skipped while the same market and direction is already open, so one view is never counted twice. Past trades were regraded with the new exits.",
     why: "Looking back over every trade so far, futures winners usually kept running well past the first profit level, so banking half too early gave up a lot. Stock trades tended to peak sooner and then fade back. The sample is still small, so this will be checked again as more trades close." },

@@ -222,7 +222,11 @@ def grade_spread(e, p, quotes, bars, optbars, today):
 
 LONG_STOP = 0.40      # long calls/puts: cut when the option has lost 40% of what was paid
 LONG_HALF = 0.50      # bank half when the option is up 50% (free ride); the rest's stop moves to the entry price
-LONG_MIN_DTE = 10     # close long options with 10 or fewer days left (time decay speeds up)
+LONG_MIN_DTE = 10     # positions opened before Oct 30, 2026: close with 10 or fewer days left
+LONG_HOLD_DAYS = 10
+LONG_V2_FROM = "2026-10-30"   # opened from this date: bought 30-60 days out, so close with 21 days left, hold up to 15 days
+LONG_MIN_DTE_V2 = 21
+LONG_HOLD_DAYS_V2 = 15
 
 
 def grade_long(e, p, quotes, bars, optbars, today):
@@ -238,6 +242,8 @@ def grade_long(e, p, quotes, bars, optbars, today):
     if q.get("bid") is not None and tday > e["entryDate"] and tday not in ob:
         ob[tday] = {"d": tday, "h": q["bid"], "l": q["bid"], "c": q["bid"]}
         days = sorted(set(days) | {tday})
+    v2 = str(e.get("entryDate", "")) >= LONG_V2_FROM
+    hold, min_dte = (LONG_HOLD_DAYS_V2, LONG_MIN_DTE_V2) if v2 else (LONG_HOLD_DAYS, LONG_MIN_DTE)
     half, exit_day, why, px = None, None, None, None
     for i, d in enumerate(days):
         o, b = ob.get(d), ub.get(d)
@@ -254,7 +260,7 @@ def grade_long(e, p, quotes, bars, optbars, today):
         if b and e["target"] and ((up and b.get("h") is not None and b["h"] >= e["target"]) or (not up and b.get("l") is not None and b["l"] <= e["target"])):
             exit_day, why, px = d, "target", oc
             break
-        if i + 1 >= HOLD_DAYS:
+        if i + 1 >= hold:
             exit_day, why, px = d, "time", oc
             break
     if not exit_day and exp:
@@ -263,7 +269,7 @@ def grade_long(e, p, quotes, bars, optbars, today):
             lc = ub[last]["c"] if last else None
             exit_day, why = exp.isoformat(), "expired"
             px = max(0.0, ((lc - e["strike"]) if e["type"] == "call" else (e["strike"] - lc))) if lc is not None else 0.0
-        elif (exp - today).days <= LONG_MIN_DTE:
+        elif (exp - today).days <= min_dte:
             exit_day, why, px = tday, "time", q.get("bid")
     if exit_day and px is None:
         px = q.get("bid")

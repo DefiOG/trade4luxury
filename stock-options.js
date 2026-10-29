@@ -11,6 +11,7 @@ function timing(basis){
   return basis==="weekly"?"4–8 weeks":basis==="intraday"?"Weekly: aggressive momentum only":"2–4 weeks";
 }
 const WEEKLY_OK=["SPY","QQQ","IWM","DIA"];
+const V2_FROM="2026-10-30";
 function spreadCheck(it,now){
   const s=it&&it.creditSpread,why=[];
   if(!s||typeof s!=="object")return {ok:false,why:["No spread published"],credit:null,width:null,maxLoss:null};
@@ -95,10 +96,20 @@ function check(it,now=Date.now()){
       (c.ask-c.bid)/((c.ask+c.bid)/2)<=0.1&&
       Math.abs(c.strike/c.underlyingPrice-1)<=0.05&&
       typeof c.catalystCheck==="string"&&c.catalystCheck.trim().length>0);
+    const days=(expiry-now)/86400000;
     if(chainReady){
-      const days=(expiry-now)/86400000;
       if(it.basis==="daily"&&days<14)chainReady=false;
       if(it.basis==="weekly"&&days<28)chainReady=false;
+    }
+    // Long calls/puts quoted from Oct 30, 2026: more time, real volume, and decay small next to a normal day's move.
+    if(it.lane!=="credit"&&String(c.verifiedAt||"")>=V2_FROM){
+      const why=[];
+      if(!(days>=30&&days<=60))why.push("expiration must be 30 to 60 days out");
+      if(!(finite(c.volume)&&c.volume>=100))why.push("needs 100+ contracts traded today");
+      if(!(finite(c.openInterest)&&c.openInterest>=100))why.push("needs 100+ open interest");
+      if(!(finite(c.theta)&&finite(c.atr)&&c.atr>0))why.push("theta and the stock's average daily move (atr) are required");
+      else if(!(Math.abs(c.delta||0)*c.atr>=3*Math.abs(c.theta)))why.push("a normal day's move (delta x daily range) must be at least 3x the daily time decay");
+      if(why.length){chainReady=false;why.forEach(w=>issues.push("Contract: "+w));if(["armed","triggered"].includes(status))status="watching"}
     }
   }
   const spread=it.lane==="credit"?spreadCheck(it,now):null;
