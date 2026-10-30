@@ -706,7 +706,7 @@ function optionsLedgerHtml(){
   const S=L.summary||{},usd=v=>v==null?"–":`<span class="${v>0?"pos":v<0?"neg":""}">${v>0?"+":""}${fmt$(v)}</span>`,pc=v=>v==null?"–":`<span class="${v>0?"pos":v<0?"neg":""}">${v>0?"+":""}${Math.round(v*100)}%</span>`;
   const isSp=p=>p.kind==="credit_spread";
   const stockNow=p=>{const lp=livePx(p.ticker);if(lp==null)return p.underlyingLast!=null?`<span class="note">$${(+p.underlyingLast).toFixed(2)} close</span>`:"–";const call=p.type==="call_credit",cush=call?(p.strike-lp)/lp:(lp-p.strike)/lp;return `$${lp.toFixed(2)} <span class="chip">live</span><div class="note ${cush<0?"neg":cush<0.01?"":"pos"}">${cush<0?"past":"cushion"} ${Math.abs(cush*100).toFixed(1)}% ${cush<0?"the":"to"} short strike</div>`};
-  const name=p=>isSp(p)?`<b class="mono">${esc(p.ticker)}</b> <span class="mono small">${esc(p.strike)}/${esc(p.longStrike)}${p.type==="put_credit"?"P":"C"} ${esc(String(p.expiration||"").slice(5))}</span><div class="note">${p.type==="put_credit"?"Put":"Call"} credit spread</div>`:`<b class="mono">${esc(p.ticker)}</b> <span class="mono small">${esc(p.strike)}${p.type==="put"?"P":"C"} ${esc(String(p.expiration||"").slice(5))}</span>`;
+  const name=p=>isSp(p)?`<b class="mono">${esc(p.ticker)}</b> <span class="mono small">${esc(p.strike)}/${esc(p.longStrike)}${p.type==="put_credit"?"P":"C"} ${esc(String(p.expiration||"").slice(5))}</span><div class="note">${p.type==="put_credit"?"Put":"Call"} credit spread × ${p.qty||1}</div>`:`<b class="mono">${esc(p.ticker)}</b> <span class="mono small">${esc(p.strike)}${p.type==="put"?"P":"C"} ${esc(String(p.expiration||"").slice(5))}</span><div class="note">× ${p.qty||1} contract${(p.qty||1)>1?"s":""}</div>`;
   const tile=(l,v)=>`<div class="stat"><div class="eyebrow">${l}</div><b>${v}</b></div>`;
   const D=P.filter(p=>!isSp(p)),C=P.filter(isSp);
   const why={target:"Stock hit target",stop:"Stopped (premium or stock level)",breakeven:"½ banked, rest out at entry",time:"Time exit",expired:"Expired",profit:"Took half the credit"};
@@ -722,7 +722,7 @@ function optionsLedgerHtml(){
     p=>`<tr><td>${name(p)}</td><td class="mono small">${esc(p.exitDate)}</td><td class="small">${esc(why[p.status]||p.status)}</td><td class="num">$${(+p.entry).toFixed(2)}</td><td class="num">$${(+p.exit).toFixed(2)}</td><td class="num">${pc(p.ret)}</td><td class="num">${usd(p.pnl)}</td></tr>`,"credit spreads","Credit collected at the natural price; valued at what it would cost to close");
   return `<div class="stats">${tile("Overall",usd((S.pnlClosed||0)+(S.pnlOpen||0)))}${tile("Closed",`${usd(S.pnlClosed)} <span class="note">(${S.closed||0})</span>`)}${tile("Open",`${usd(S.pnlOpen)} <span class="note">(${S.open||0})</span>`)}${tile("Win rate",S.win==null?"–":Math.round(S.win*100)+"%")}</div>
   ${spr}${dir}
-  <p class="note" style="max-width:80ch">${esc(L.method||"")} P&amp;L is per contract or spread (×100), no fees.</p>`;
+  <p class="note" style="max-width:80ch">${esc(L.method||"")} Each idea is sized to risk about $500; P&amp;L is for the number of contracts shown (×100 shares each), no fees.</p>`;
 }
 let SCORE_DESK="futures";
 function renderScore(){

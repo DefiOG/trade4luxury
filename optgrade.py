@@ -291,19 +291,39 @@ def grade_long(e, p, quotes, bars, optbars, today):
 
 
 
+RISK_PER_TRADE = 500  # dollars at risk per idea: calls/puts risk 40% of the premium (the paper stop), spreads their max loss
+
+
+def size(p):
+    """Contracts for an idea so each one risks about RISK_PER_TRADE (at least 1). Scales P&L once."""
+    if p.get("qty"):
+        return p
+    if p.get("kind") == "credit_spread":
+        per = (p.get("maxLoss") or 0) * MULT
+    else:
+        per = (p.get("entry") or 0) * MULT * LONG_STOP
+    qty = max(1, round(RISK_PER_TRADE / per)) if per > 0 else 1
+    for f in ("pnl", "pnlNow"):
+        if p.get(f) is not None:
+            p[f] = round(p[f] * qty, 2)
+    p["qty"] = qty
+    p["riskUsd"] = round(per * qty, 2)
+    return p
+
+
 def grade(data, quotes, bars, optbars, today):
     prev = previous(data)
     positions = []
     for e in entries(data):
         p = prev.get(e["key"])
         if p and p.get("status") != "open":
-            positions.append(p)  # frozen
+            positions.append(size(p))  # frozen (sized once)
             continue
         p = {**e, "status": "open"}
         if e.get("kind") == "credit_spread":
-            positions.append(grade_spread(e, p, quotes, bars, optbars, today))
+            positions.append(size(grade_spread(e, p, quotes, bars, optbars, today)))
             continue
-        positions.append(grade_long(e, p, quotes, bars, optbars, today))
+        positions.append(size(grade_long(e, p, quotes, bars, optbars, today)))
         continue
     closed = [p for p in positions if p["status"] != "open"]
     opened = [p for p in positions if p["status"] == "open"]
@@ -316,7 +336,7 @@ def grade(data, quotes, bars, optbars, today):
     n_sp = sum(1 for p in positions if p.get("kind") == "credit_spread")
     summary["spreads"] = n_sp
     return {"v": 1, "generatedAt": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
-            "method": "Calls and puts: one contract per published, chain-verified idea, bought at the ask and marked at the real bid each evening. Half is sold once the option is up 50% (the rest then stops out at the entry price); otherwise it is cut at a 40% loss of premium or when the stock breaks its level, and closed at the stock's first target, after 10 trading days or with 10 days left to expiry. Option P&L uses option prices only. Credit spreads: collect the natural credit (short bid minus long ask); marked at the cost to close (short ask minus long bid); close on the stock's invalidation, when it costs 2x the credit to close, when half the credit is earned, inside 5 days to expiry (the day before expiry for weeklies), or at expiration; return is measured on max loss.",
+            "method": "Size: each idea is sized to risk about $500 (calls and puts: 40% of the premium paid; spreads: their max loss), at least one contract. Calls and puts: bought at the ask and marked at the real bid each evening. Half is sold once the option is up 50% (the rest then stops out at the entry price); otherwise it is cut at a 40% loss of premium or when the stock breaks its level, and closed at the stock's first target, after 15 trading days or with 21 days left to expiry (10 and 10 for contracts opened before Oct 30). Option P&L uses option prices only. Credit spreads: collect the natural credit (short bid minus long ask); marked at the cost to close (short ask minus long bid); close on the stock's invalidation, when it costs 2x the credit to close, when half the credit is earned, inside 5 days to expiry (the day before expiry for weeklies), or at expiration; return is measured on max loss.",
             "positions": sorted(positions, key=lambda p: p["entryDate"], reverse=True), "summary": summary}
 
 

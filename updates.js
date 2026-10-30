@@ -2,6 +2,9 @@
    Each entry: date (YYYY-MM-DD), area, what changed, why. Plain text only.
    Keep it general: say what changed for the reader, never the exact rules or parameters. */
 window.TFL_UPDATES = [
+  { date: "2026-10-30", area: "Options", title: "Option trades sized by risk",
+    what: "Each options idea is now sized to risk about the same amount: cheaper contracts get more contracts, expensive ones fewer (always at least one). The ledger shows how many contracts each trade used. Past trades were recalculated the same way.",
+    why: "With one contract each, a $2,300 contract counted sixteen times as much as a $140 one, so the dollar results mostly reflected the option's price, not whether the idea worked." },
   { date: "2026-10-29", area: "Options", title: "Stricter contracts for calls and puts",
     what: "Calls and puts are now bought with more time left (about six weeks instead of four), only in contracts that actually trade every day, and only when a normal day's move in the stock is worth several times the option's daily time decay. They're closed earlier, while plenty of time is still left, and can be held a little longer before the time limit.",
     why: "Two of the first contracts traded only a handful of times on the day they were checked, and short-dated contracts lose value fastest to time decay. More time gives a setup room to work without the clock doing the damage." },
