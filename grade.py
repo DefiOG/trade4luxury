@@ -424,7 +424,9 @@ def _card(results):
         rs = [r["r"] for r in rows]
         wins = [x for x in rs if x > 0]
         pnl = round(sum(r.get("pnl", 0) for r in rows), 2)
-        return {"n": len(rs), "win": round(len(wins) / len(rs), 3), "avgR": round(sum(rs) / len(rs), 2), "totalR": round(sum(rs), 2), "pnl": pnl}
+        gw, gl = sum(x for x in rs if x > 0), -sum(x for x in rs if x < 0)
+        return {"n": len(rs), "win": round(len(wins) / len(rs), 3), "avgR": round(sum(rs) / len(rs), 2), "totalR": round(sum(rs), 2), "pnl": pnl,
+                "profitFactor": round(gw / gl, 2) if gl else None}
 
     def by(field, fn=lambda v: v or "–"):
         groups = {}
@@ -447,6 +449,12 @@ def _card(results):
              "capital": round(sum(r.get("capital") or 0 for r in open_rows), 2),
              "capitalUnknown": sum(1 for r in open_rows if r.get("capital") is None),
              "best": max((r.get("pnl", 0) for r in closed), default=0), "worst": min((r.get("pnl", 0) for r in closed), default=0)}
+    peak, mdd, eq, rpeak, rdd, req = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+    for r in sorted(closed, key=lambda r: (r.get("exit_on") or "", r.get("key") or "")):
+        eq += r.get("pnl", 0); req += r.get("r", 0)
+        peak, rpeak = max(peak, eq), max(rpeak, req)
+        mdd, rdd = min(mdd, eq - peak), min(rdd, req - rpeak)
+    paper["maxDrawdown"], paper["maxDrawdownR"] = round(mdd, 2), round(rdd, 2)
     return {"overall": agg(closed), "paper": paper, "byGrade": by("grade"), "byMarket": by("contract", lambda c: micro.get(root_of(c), root_of(c))),
             "byTimeframe": by("timeframe"), "counts": counts}
 
