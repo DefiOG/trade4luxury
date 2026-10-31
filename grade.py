@@ -37,7 +37,7 @@ Rules (deliberately conservative, daily bars only):
   * Stocks/ETFs: the whole position is taken off at +1.25R (or the target if nearer).
   * From Oct 28, an idea is skipped while the same market and direction is already open.
   * Time limit after the fill: intraday exits at that day's close, swing after
-    10 bars, position after 40 bars ("expired", exit at the close).
+    20 bars for futures (10 for stocks/ETFs), position after 40 bars ("expired", exit at the close).
 """
 from __future__ import annotations
 
@@ -154,6 +154,7 @@ FREE_RIDE_R = 1.5  # futures: bank half at +1.5R, stop to entry on the rest (was
 STOCK_TAKE_R = 1.25  # stocks/ETFs: whole position out at +1.25R (or the target if nearer), no partial
 DEDUPE_FROM = "2026-10-28"  # from this date, an idea is skipped while the same market and direction is already open
 HOLD_LIMIT = {"intraday": 1, "swing": 10, "position": 40}
+FUT_SWING_HOLD = 20  # futures swing trades: up to 20 bars (was 10 until Oct 31), so winners can run
 KEEP_DAYS = 90
 
 
@@ -231,7 +232,7 @@ def simulate(bars, scan_date, direction, timeframe, entry, stop, target, resolve
         return {"status": "not_triggered" if done else "waiting"}
 
     rr = lambda px: sign * (px - fill) / risk
-    limit = HOLD_LIMIT[tf]
+    limit = FUT_SWING_HOLD if (not stock and tf == "swing") else HOLD_LIMIT[tf]
     held = after[fill_i: fill_i + limit]
     # Free ride (futures): at +1.5R bank half the position and move the stop on the rest to the fill.
     p1 = fill + sign * risk * FREE_RIDE_R
@@ -539,7 +540,7 @@ def main() -> int:
         print(RESOLVE_JS.replace("__CASES__", json.dumps(cases)) if cases else "NO_UNCLEAR_DAYS")
         return 0
     doc = {"v": 1, "generatedAt": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
-           "method": "Paper trades graded on real daily futures prices (Yahoo continuous front month; ETFs and stocks by ticker). One futures contract per idea; stocks and ETFs sized so the stop risks about $500. Exits: futures bank half at +1.5R and move the rest to break-even; stocks and ETFs are closed in full at +1.25R or the target, whichever is nearer. From Oct 28 an idea is skipped while the same market and direction is already open. When a daily bar can't show whether the fill, stop or target came first, the day is replayed on 5-minute bars; if that isn't available the stop is counted first.",
+           "method": "Paper trades graded on real daily futures prices (Yahoo continuous front month; ETFs and stocks by ticker). One futures contract per idea; stocks and ETFs sized so the stop risks about $500. Exits: futures bank half at +1.5R, move the rest to break-even and can be held up to 20 trading days; stocks and ETFs are closed in full at +1.25R or the target, whichever is nearer. From Oct 28 an idea is skipped while the same market and direction is already open. When a daily bar can't show whether the fill, stop or target came first, the day is replayed on 5-minute bars; if that isn't available the stop is counted first.",
            "results": results, "summary": scorecard(results)}
     if a.out:
         if len(norm(code)) < 12 and not a.plain:

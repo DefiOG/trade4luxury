@@ -2,6 +2,9 @@
    Each entry: date (YYYY-MM-DD), area, what changed, why. Plain text only.
    Keep it general: say what changed for the reader, never the exact rules or parameters. */
 window.TFL_UPDATES = [
+  { date: "2026-10-31", area: "Futures", title: "Futures winners get more room",
+    what: "Futures swing trades can now be held for up to four weeks instead of two, and when the chart has clear room the morning brief can aim further than the first level. Stock and ETF exits are unchanged.",
+    why: "A test over 26 years of price history showed that letting trend trades run longer did better in both halves of the period, and the desk's own winners have kept going after reaching their targets." },
   { date: "2026-10-30", area: "Options", title: "Option trades sized by risk",
     what: "Each options idea is now sized to risk about the same amount: cheaper contracts get more contracts, expensive ones fewer (always at least one). The ledger shows how many contracts each trade used. Past trades were recalculated the same way.",
     why: "With one contract each, a $2,300 contract counted sixteen times as much as a $140 one, so the dollar results mostly reflected the option's price, not whether the idea worked." },
