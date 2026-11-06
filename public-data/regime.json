@@ -1,5 +1,5 @@
 {
- "asOf": "2026-11-05",
+ "asOf": "2026-11-06",
  "key": "mid",
  "label": "Mid-cycle expansion",
  "favors": "NQ/ES long, CL firm, dips bought",
@@ -22,18 +22,18 @@
   {
    "group": "growth",
    "name": "Unemployment rate",
-   "value": "4.2%",
+   "value": "4.1%",
    "signal": 0,
    "text": "Not rising meaningfully",
-   "asOf": "2026-09-01"
+   "asOf": "2026-10-01"
   },
   {
    "group": "growth",
    "name": "Payrolls",
-   "value": "+51k/mo (3-mo avg)",
+   "value": "+137k/mo (3-mo avg)",
    "signal": 0,
    "text": "Moderate hiring",
-   "asOf": "2026-09-01"
+   "asOf": "2026-10-01"
   },
   {
    "group": "growth",
@@ -62,10 +62,10 @@
   {
    "group": "growth",
    "name": "Yield curve (10y − 2y)",
-   "value": "+0.32 pts",
+   "value": "+0.38 pts",
    "signal": 0,
    "text": "Positive and steady",
-   "asOf": "2026-11-04"
+   "asOf": "2026-11-05"
   },
   {
    "group": "inflation",
@@ -86,18 +86,18 @@
   {
    "group": "inflation",
    "name": "5-yr inflation expectations",
-   "value": "2.3%",
+   "value": "2.26%",
    "signal": 0,
    "text": "Anchored",
-   "asOf": "2026-11-04"
+   "asOf": "2026-11-05"
   },
   {
    "group": "stress",
    "name": "Junk-bond spreads",
-   "value": "3.32 pts (+0.29 in a month)",
+   "value": "3.48 pts (+0.39 in a month)",
    "signal": 0,
    "text": "Calm credit markets",
-   "asOf": "2026-11-04"
+   "asOf": "2026-11-05"
   },
   {
    "group": "stress",
@@ -113,7 +113,7 @@
    "value": "3.88%",
    "signal": 0,
    "text": "Effective rate",
-   "asOf": "2026-11-03"
+   "asOf": "2026-11-04"
   },
   {
    "group": "supporting",
@@ -129,7 +129,7 @@
    "value": "34.4 hrs (+0.1 in 3 months)",
    "signal": 0,
    "text": "Steady",
-   "asOf": "2026-09-01"
+   "asOf": "2026-10-01"
   },
   {
    "group": "supporting",
@@ -142,10 +142,10 @@
   {
    "group": "supporting",
    "name": "Payroll revisions",
-   "value": "-60k to Jul-Aug",
-   "signal": -1,
-   "text": "Original vs. revised: the Jul-Aug job gains were first reported at 183k and now stand at 123k. Big downward revisions mean the labor market was weaker than it looked.",
-   "asOf": "2026-09-01"
+   "value": "+84k to Aug-Sep",
+   "signal": 1,
+   "text": "Original vs. revised: the Aug-Sep job gains were first reported at 162k and now stand at 246k. Upward revisions mean it was stronger than first reported.",
+   "asOf": "2026-10-01"
   }
  ],
  "method": "Supporting indicators (inventories-to-sales, weekly hours, real consumer spending, payroll revisions) are shown for context and are not part of the scores yet. Each indicator scores +1 / 0 / −1 (stress 0 to +1). Growth, inflation and stress are the averages. Growth ≤ −0.25 = slowdown; inflation ≥ +0.34 = late cycle; growth ≥ +0.25 = mid-cycle; in between, early recovery if claims are falling and the curve is steepening. Data: FRED, St. Louis Fed. Swing filters (Baumohl): sentiment vs. real retail sales (UMich, FRED), Fed Beige Book keyword counts vs. two reports earlier, freight (Cass shipments, ATA truck tonnage, BDRY dry-bulk ETF) and yield-curve steepening after inversion. Each active filter makes setups on its side easier (minimum score −1) and the other side harder (+1), from a base of 6.",
@@ -169,15 +169,15 @@
    "key": "freight",
    "name": "Freight and shipping",
    "state": "off",
-   "text": "Cass shipments +1.9% y/y; truck tonnage -0.2% over 3 months; dry-bulk shipping (BDRY) -22% over 45 trading days. No sustained break.",
+   "text": "Cass shipments +1.9% y/y; truck tonnage -0.2% over 3 months; dry-bulk shipping (BDRY) -18% over 45 trading days. No sustained break.",
    "asOf": "2026-09-01"
   },
   {
    "key": "curve",
    "name": "Yield curve",
    "state": "off",
-   "text": "10y − 2y = +0.32; over 3 months the 2-year moved +0.41 and the 10-year +0.32. Not recently inverted.",
-   "asOf": "2026-11-04"
+   "text": "10y − 2y = +0.38; over 3 months the 2-year moved +0.40 and the 10-year +0.27. Not recently inverted.",
+   "asOf": "2026-11-05"
   }
  ],
  "tilts": [
