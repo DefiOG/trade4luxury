@@ -1,12 +1,12 @@
 {
- "asOf": "2026-11-09",
+ "asOf": "2026-11-10",
  "key": "mid",
  "label": "Mid-cycle expansion",
  "favors": "NQ/ES long, CL firm, dips bought",
  "hurts": "Bonds (ZN/ZB)",
  "scores": {
   "growth": 0.43,
-  "inflation": 0,
+  "inflation": 0.33,
   "stress": 0
  },
  "flags": [],
@@ -62,18 +62,18 @@
   {
    "group": "growth",
    "name": "Yield curve (10y − 2y)",
-   "value": "+0.35 pts",
+   "value": "+0.32 pts",
    "signal": 0,
    "text": "Positive and steady",
-   "asOf": "2026-11-06"
+   "asOf": "2026-11-09"
   },
   {
    "group": "inflation",
    "name": "Core CPI",
-   "value": "3.4% (3-mo annualized), 2.8% y/y",
-   "signal": 0,
-   "text": "Sticky, above target",
-   "asOf": "2026-09-01"
+   "value": "3.7% (3-mo annualized), 2.9% y/y",
+   "signal": 1,
+   "text": "Running hot",
+   "asOf": "2026-10-01"
   },
   {
    "group": "inflation",
@@ -86,18 +86,18 @@
   {
    "group": "inflation",
    "name": "5-yr inflation expectations",
-   "value": "2.29%",
+   "value": "2.25%",
    "signal": 0,
    "text": "Anchored",
-   "asOf": "2026-11-06"
+   "asOf": "2026-11-09"
   },
   {
    "group": "stress",
    "name": "Junk-bond spreads",
-   "value": "3.42 pts (+0.27 in a month)",
+   "value": "3.34 pts (+0.23 in a month)",
    "signal": 0,
    "text": "Calm credit markets",
-   "asOf": "2026-11-06"
+   "asOf": "2026-11-09"
   },
   {
    "group": "stress",
@@ -113,7 +113,7 @@
    "value": "3.88%",
    "signal": 0,
    "text": "Effective rate",
-   "asOf": "2026-11-05"
+   "asOf": "2026-11-06"
   },
   {
    "group": "supporting",
@@ -169,15 +169,15 @@
    "key": "freight",
    "name": "Freight and shipping",
    "state": "off",
-   "text": "Cass shipments +1.9% y/y; truck tonnage -0.2% over 3 months; dry-bulk shipping (BDRY) -19% over 45 trading days. No sustained break.",
+   "text": "Cass shipments +1.9% y/y; truck tonnage -0.2% over 3 months; dry-bulk shipping (BDRY) -17% over 45 trading days. No sustained break.",
    "asOf": "2026-09-01"
   },
   {
    "key": "curve",
    "name": "Yield curve",
    "state": "off",
-   "text": "10y − 2y = +0.35; over 3 months the 2-year moved +0.21 and the 10-year +0.15. Not recently inverted.",
-   "asOf": "2026-11-06"
+   "text": "10y − 2y = +0.32; over 3 months the 2-year moved +0.32 and the 10-year +0.21. Not recently inverted.",
+   "asOf": "2026-11-09"
   }
  ],
  "tilts": [
