@@ -1,5 +1,5 @@
 {
- "asOf": "2026-11-11",
+ "asOf": "2026-11-12",
  "key": "mid",
  "label": "Mid-cycle expansion",
  "favors": "NQ/ES long, CL firm, dips bought",
@@ -17,7 +17,7 @@
    "value": "195k (4-wk avg)",
    "signal": 1,
    "text": "Falling versus the last 6 months",
-   "asOf": "2026-10-31"
+   "asOf": "2026-11-07"
   },
   {
    "group": "growth",
@@ -94,10 +94,10 @@
   {
    "group": "stress",
    "name": "Junk-bond spreads",
-   "value": "3.34 pts (+0.23 in a month)",
+   "value": "3.3 pts (+0.19 in a month)",
    "signal": 0,
    "text": "Calm credit markets",
-   "asOf": "2026-11-09"
+   "asOf": "2026-11-11"
   },
   {
    "group": "stress",
@@ -105,7 +105,7 @@
    "value": "-0.46",
    "signal": 0,
    "text": "Looser than average",
-   "asOf": "2026-10-30"
+   "asOf": "2026-11-06"
   },
   {
    "group": "policy",
@@ -169,7 +169,7 @@
    "key": "freight",
    "name": "Freight and shipping",
    "state": "off",
-   "text": "Cass shipments +1.9% y/y; truck tonnage -0.2% over 3 months; dry-bulk shipping (BDRY) -15% over 45 trading days. No sustained break.",
+   "text": "Cass shipments +1.9% y/y; truck tonnage -0.2% over 3 months; dry-bulk shipping (BDRY) -16% over 45 trading days. No sustained break.",
    "asOf": "2026-09-01"
   },
   {
