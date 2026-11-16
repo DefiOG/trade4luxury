@@ -1,5 +1,5 @@
 {
- "asOf": "2026-11-14",
+ "asOf": "2026-11-16",
  "key": "mid",
  "label": "Mid-cycle expansion",
  "favors": "NQ/ES long, CL firm, dips bought",
@@ -94,10 +94,10 @@
   {
    "group": "stress",
    "name": "Junk-bond spreads",
-   "value": "3.2 pts (+0.04 in a month)",
+   "value": "3.23 pts (+0 in a month)",
    "signal": 0,
    "text": "Calm credit markets",
-   "asOf": "2026-11-12"
+   "asOf": "2026-11-13"
   },
   {
    "group": "stress",
