@@ -1,5 +1,5 @@
 {
- "asOf": "2026-11-16",
+ "asOf": "2026-11-17",
  "key": "mid",
  "label": "Mid-cycle expansion",
  "favors": "NQ/ES long, CL firm, dips bought",
@@ -38,18 +38,18 @@
   {
    "group": "growth",
    "name": "Industrial production",
-   "value": "+2.2% y/y",
+   "value": "+2.1% y/y",
    "signal": 1,
    "text": "Factories expanding",
-   "asOf": "2026-09-01"
+   "asOf": "2026-10-01"
   },
   {
    "group": "growth",
    "name": "Real retail sales",
-   "value": "+2.3% y/y after inflation",
+   "value": "+2.6% y/y after inflation",
    "signal": 1,
    "text": "Consumers spending more",
-   "asOf": "2026-09-01"
+   "asOf": "2026-10-01"
   },
   {
    "group": "growth",
@@ -62,10 +62,10 @@
   {
    "group": "growth",
    "name": "Yield curve (10y − 2y)",
-   "value": "+0.27 pts",
+   "value": "+0.29 pts",
    "signal": 0,
    "text": "Positive and steady",
-   "asOf": "2026-11-13"
+   "asOf": "2026-11-16"
   },
   {
    "group": "inflation",
@@ -86,18 +86,18 @@
   {
    "group": "inflation",
    "name": "5-yr inflation expectations",
-   "value": "2.3%",
+   "value": "2.25%",
    "signal": 0,
    "text": "Anchored",
-   "asOf": "2026-11-13"
+   "asOf": "2026-11-16"
   },
   {
    "group": "stress",
    "name": "Junk-bond spreads",
-   "value": "3.23 pts (+0 in a month)",
+   "value": "3.34 pts (+0.03 in a month)",
    "signal": 0,
    "text": "Calm credit markets",
-   "asOf": "2026-11-13"
+   "asOf": "2026-11-16"
   },
   {
    "group": "stress",
@@ -113,15 +113,15 @@
    "value": "3.88%",
    "signal": 0,
    "text": "Effective rate",
-   "asOf": "2026-11-12"
+   "asOf": "2026-11-13"
   },
   {
    "group": "supporting",
    "name": "Inventories-to-sales ratio",
-   "value": "1.33 (+0.02 in 3 months)",
+   "value": "1.33 (-0.02 in 3 months)",
    "signal": 0,
    "text": "Stable",
-   "asOf": "2026-08-01"
+   "asOf": "2026-09-01"
   },
   {
    "group": "supporting",
@@ -154,7 +154,7 @@
    "key": "sentiment",
    "name": "Sentiment vs. spending",
    "state": "bearish",
-   "text": "Sentiment 55.2 → 48.1 over 2 months; real retail sales +0.5% over 3 months. Mood is sinking while spending holds up: likely debt-financed. Watch for distribution tops in ES/NQ.",
+   "text": "Sentiment 55.2 → 48.1 over 2 months; real retail sales +1.1% over 3 months. Mood is sinking while spending holds up: likely debt-financed. Watch for distribution tops in ES/NQ.",
    "asOf": "2026-09-01"
   },
   {
@@ -169,15 +169,15 @@
    "key": "freight",
    "name": "Freight and shipping",
    "state": "off",
-   "text": "Cass shipments +5.9% y/y; truck tonnage -0.2% over 3 months; dry-bulk shipping (BDRY) -17% over 45 trading days. No sustained break.",
+   "text": "Cass shipments +5.9% y/y; truck tonnage -0.2% over 3 months; dry-bulk shipping (BDRY) -16% over 45 trading days. No sustained break.",
    "asOf": "2026-10-01"
   },
   {
    "key": "curve",
    "name": "Yield curve",
    "state": "off",
-   "text": "10y − 2y = +0.27; over 3 months the 2-year moved +0.66 and the 10-year +0.42. Not recently inverted.",
-   "asOf": "2026-11-13"
+   "text": "10y − 2y = +0.29; over 3 months the 2-year moved +0.73 and the 10-year +0.52. Not recently inverted.",
+   "asOf": "2026-11-16"
   }
  ],
  "tilts": [

@@ -1,192 +1,192 @@
 {
- "asOf": "2026-11-03",
+ "asOf": "2026-11-10",
  "rows": [
   {
    "sym": "ES",
    "name": "S&P 500",
-   "net": -129414,
-   "chg": 4954,
-   "pctOI": -6.5,
-   "pct": 37,
+   "net": -138634,
+   "chg": -9220,
+   "pctOI": -6.9,
+   "pct": 34,
    "flag": "",
    "note": "",
-   "asOf": "2026-11-03"
+   "asOf": "2026-11-10"
   },
   {
    "sym": "NQ",
    "name": "Nasdaq-100",
-   "net": 42873,
-   "chg": -5966,
-   "pctOI": 14.7,
-   "pct": 89,
+   "net": 29131,
+   "chg": -13742,
+   "pctOI": 10.1,
+   "pct": 68,
    "flag": "",
    "note": "",
-   "asOf": "2026-11-03"
+   "asOf": "2026-11-10"
   },
   {
    "sym": "RTY",
    "name": "Russell 2000",
-   "net": -23654,
-   "chg": 12425,
-   "pctOI": -5.3,
-   "pct": 49,
+   "net": -5755,
+   "chg": 17899,
+   "pctOI": -1.3,
+   "pct": 75,
    "flag": "",
    "note": "",
-   "asOf": "2026-11-03"
+   "asOf": "2026-11-10"
   },
   {
    "sym": "ZT",
    "name": "2-yr Note",
-   "net": -1002544,
-   "chg": 6932,
-   "pctOI": -22.5,
-   "pct": 93,
+   "net": -1112745,
+   "chg": -110201,
+   "pctOI": -24.8,
+   "pct": 81,
    "flag": "",
-   "note": "least short in 3 yrs",
-   "asOf": "2026-11-03"
+   "note": "",
+   "asOf": "2026-11-10"
   },
   {
    "sym": "ZN",
    "name": "10-yr Note",
-   "net": -962359,
-   "chg": 19179,
-   "pctOI": -16.2,
+   "net": -983916,
+   "chg": -21557,
+   "pctOI": -16.1,
    "pct": 38,
    "flag": "",
    "note": "",
-   "asOf": "2026-11-03"
+   "asOf": "2026-11-10"
   },
   {
    "sym": "ZB",
    "name": "30-yr Bond",
-   "net": -9097,
-   "chg": 10041,
+   "net": -9269,
+   "chg": -172,
    "pctOI": -0.5,
    "pct": 87,
    "flag": "",
    "note": "",
-   "asOf": "2026-11-03"
+   "asOf": "2026-11-10"
   },
   {
    "sym": "GC",
    "name": "Gold",
-   "net": 179548,
-   "chg": -6903,
-   "pctOI": 45,
-   "pct": 39,
+   "net": 190107,
+   "chg": 10559,
+   "pctOI": 47,
+   "pct": 47,
    "flag": "",
    "note": "",
-   "asOf": "2026-11-03"
+   "asOf": "2026-11-10"
   },
   {
    "sym": "SI",
    "name": "Silver",
-   "net": 21251,
-   "chg": 1548,
-   "pctOI": 18.4,
-   "pct": 11,
+   "net": 19364,
+   "chg": -1887,
+   "pctOI": 16.7,
+   "pct": 7,
    "flag": "",
-   "note": "",
-   "asOf": "2026-11-03"
+   "note": "least long in 3 yrs",
+   "asOf": "2026-11-10"
   },
   {
    "sym": "HG",
    "name": "Copper",
-   "net": 37710,
-   "chg": -10607,
-   "pctOI": 11.5,
-   "pct": 38,
+   "net": 28904,
+   "chg": -8806,
+   "pctOI": 9.2,
+   "pct": 28,
    "flag": "",
    "note": "",
-   "asOf": "2026-11-03"
+   "asOf": "2026-11-10"
   },
   {
    "sym": "CL",
    "name": "Crude oil (WTI)",
-   "net": 80289,
-   "chg": 5946,
-   "pctOI": 4.2,
-   "pct": 13,
+   "net": 73982,
+   "chg": -6307,
+   "pctOI": 3.9,
+   "pct": 10,
    "flag": "",
-   "note": "",
-   "asOf": "2026-11-03"
+   "note": "least long in 3 yrs",
+   "asOf": "2026-11-10"
   },
   {
    "sym": "NG",
    "name": "Natural gas",
-   "net": -258863,
-   "chg": -3699,
-   "pctOI": -15.4,
+   "net": -269998,
+   "chg": -11135,
+   "pctOI": -16.4,
    "pct": 1,
    "flag": "crowded short",
    "note": "",
-   "asOf": "2026-11-03"
+   "asOf": "2026-11-10"
   },
   {
    "sym": "DX",
    "name": "US dollar index",
-   "net": 14190,
-   "chg": 69,
-   "pctOI": 28.9,
-   "pct": 76,
+   "net": 13813,
+   "chg": -377,
+   "pctOI": 26.9,
+   "pct": 75,
    "flag": "",
    "note": "",
-   "asOf": "2026-11-03"
+   "asOf": "2026-11-10"
   },
   {
    "sym": "6E",
    "name": "Euro",
-   "net": -157791,
-   "chg": -13897,
-   "pctOI": -18,
-   "pct": 1,
+   "net": -136396,
+   "chg": 21395,
+   "pctOI": -16,
+   "pct": 2,
    "flag": "crowded short",
    "note": "",
-   "asOf": "2026-11-03"
+   "asOf": "2026-11-10"
   },
   {
    "sym": "6J",
    "name": "Japanese yen",
-   "net": 102321,
-   "chg": 730,
-   "pctOI": 26.9,
-   "pct": 83,
+   "net": 123113,
+   "chg": 20792,
+   "pctOI": 31.7,
+   "pct": 87,
    "flag": "",
    "note": "",
-   "asOf": "2026-11-03"
+   "asOf": "2026-11-10"
   },
   {
    "sym": "ZC",
    "name": "Corn",
-   "net": 137595,
-   "chg": -63677,
-   "pctOI": 7.2,
-   "pct": 64,
+   "net": 109075,
+   "chg": -28520,
+   "pctOI": 5.5,
+   "pct": 61,
    "flag": "",
    "note": "",
-   "asOf": "2026-11-03"
+   "asOf": "2026-11-10"
   },
   {
    "sym": "ZS",
    "name": "Soybeans",
-   "net": 163618,
-   "chg": -40501,
-   "pctOI": 17.1,
-   "pct": 76,
+   "net": 146550,
+   "chg": -17068,
+   "pctOI": 15.1,
+   "pct": 73,
    "flag": "",
    "note": "",
-   "asOf": "2026-11-03"
+   "asOf": "2026-11-10"
   },
   {
    "sym": "ZW",
    "name": "Wheat",
-   "net": -62538,
-   "chg": -11776,
-   "pctOI": -11.7,
-   "pct": 45,
+   "net": -60040,
+   "chg": 2498,
+   "pctOI": -10.8,
+   "pct": 51,
    "flag": "",
    "note": "",
-   "asOf": "2026-11-03"
+   "asOf": "2026-11-10"
   }
  ],
  "crowded": [
