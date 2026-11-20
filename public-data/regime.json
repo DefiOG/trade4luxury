@@ -1,5 +1,5 @@
 {
- "asOf": "2026-11-19",
+ "asOf": "2026-11-20",
  "key": "mid",
  "label": "Mid-cycle expansion",
  "favors": "NQ/ES long, CL firm, dips bought",
@@ -62,10 +62,10 @@
   {
    "group": "growth",
    "name": "Yield curve (10y − 2y)",
-   "value": "+0.27 pts",
+   "value": "+0.28 pts",
    "signal": 0,
    "text": "Positive and steady",
-   "asOf": "2026-11-18"
+   "asOf": "2026-11-19"
   },
   {
    "group": "inflation",
@@ -86,18 +86,18 @@
   {
    "group": "inflation",
    "name": "5-yr inflation expectations",
-   "value": "2.23%",
+   "value": "2.22%",
    "signal": 0,
    "text": "Anchored",
-   "asOf": "2026-11-18"
+   "asOf": "2026-11-19"
   },
   {
    "group": "stress",
    "name": "Junk-bond spreads",
-   "value": "3.47 pts (+0.14 in a month)",
+   "value": "3.52 pts (+0.25 in a month)",
    "signal": 0,
    "text": "Calm credit markets",
-   "asOf": "2026-11-18"
+   "asOf": "2026-11-19"
   },
   {
    "group": "stress",
@@ -113,7 +113,7 @@
    "value": "3.88%",
    "signal": 0,
    "text": "Effective rate",
-   "asOf": "2026-11-17"
+   "asOf": "2026-11-18"
   },
   {
    "group": "supporting",
@@ -153,9 +153,9 @@
   {
    "key": "sentiment",
    "name": "Sentiment vs. spending",
-   "state": "bearish",
-   "text": "Sentiment 55.2 → 48.1 over 2 months; real retail sales +1.1% over 3 months. Mood is sinking while spending holds up: likely debt-financed. Watch for distribution tops in ES/NQ.",
-   "asOf": "2026-09-01"
+   "state": "off",
+   "text": "Sentiment 51.7 → 48 over 2 months; real retail sales +1.1% over 3 months. No divergence.",
+   "asOf": "2026-10-01"
   },
   {
    "key": "beige",
@@ -169,23 +169,18 @@
    "key": "freight",
    "name": "Freight and shipping",
    "state": "off",
-   "text": "Cass shipments +5.9% y/y; truck tonnage -0.2% over 3 months; dry-bulk shipping (BDRY) -21% over 45 trading days. No sustained break.",
+   "text": "Cass shipments +5.9% y/y; truck tonnage -0.2% over 3 months; dry-bulk shipping (BDRY) -22% over 45 trading days. No sustained break.",
    "asOf": "2026-10-01"
   },
   {
    "key": "curve",
    "name": "Yield curve",
    "state": "off",
-   "text": "10y − 2y = +0.27; over 3 months the 2-year moved +0.61 and the 10-year +0.38. Not recently inverted.",
-   "asOf": "2026-11-18"
+   "text": "10y − 2y = +0.28; over 3 months the 2-year moved +0.61 and the 10-year +0.36. Not recently inverted.",
+   "asOf": "2026-11-19"
   }
  ],
  "tilts": [
-  {
-   "bucket": "equities",
-   "side": "short",
-   "why": "sentiment-spending divergence"
-  },
   {
    "bucket": "bonds",
    "side": "long",
@@ -194,18 +189,14 @@
  ],
  "hurdles": {
   "equities long": {
-   "min": 7,
+   "min": 6,
    "markets": "ES, NQ, RTY, YM and stock/sector ETFs",
-   "why": [
-    "harder: sentiment-spending divergence"
-   ]
+   "why": []
   },
   "equities short": {
-   "min": 5,
+   "min": 6,
    "markets": "ES, NQ, RTY, YM and stock/sector ETFs",
-   "why": [
-    "easier: sentiment-spending divergence"
-   ]
+   "why": []
   },
   "bonds long": {
    "min": 5,
