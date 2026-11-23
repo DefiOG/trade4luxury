@@ -1,5 +1,5 @@
 {
- "asOf": "2026-11-21",
+ "asOf": "2026-11-23",
  "key": "mid",
  "label": "Mid-cycle expansion",
  "favors": "NQ/ES long, CL firm, dips bought",
@@ -94,10 +94,10 @@
   {
    "group": "stress",
    "name": "Junk-bond spreads",
-   "value": "3.52 pts (+0.25 in a month)",
+   "value": "3.76 pts (+0.36 in a month)",
    "signal": 0,
    "text": "Calm credit markets",
-   "asOf": "2026-11-19"
+   "asOf": "2026-11-20"
   },
   {
    "group": "stress",
@@ -113,7 +113,7 @@
    "value": "3.88%",
    "signal": 0,
    "text": "Effective rate",
-   "asOf": "2026-11-19"
+   "asOf": "2026-11-20"
   },
   {
    "group": "supporting",
@@ -169,14 +169,14 @@
    "key": "freight",
    "name": "Freight and shipping",
    "state": "off",
-   "text": "Cass shipments +5.9% y/y; truck tonnage -0.2% over 3 months; dry-bulk shipping (BDRY) -23% over 45 trading days. No sustained break.",
+   "text": "Cass shipments +5.9% y/y; truck tonnage -0.2% over 3 months; dry-bulk shipping (BDRY) -21% over 45 trading days. No sustained break.",
    "asOf": "2026-10-01"
   },
   {
    "key": "curve",
    "name": "Yield curve",
    "state": "off",
-   "text": "10y − 2y = +0.29; over 3 months the 2-year moved +0.57 and the 10-year +0.39. Not recently inverted.",
+   "text": "10y − 2y = +0.29; over 3 months the 2-year moved +0.44 and the 10-year +0.23. Not recently inverted.",
    "asOf": "2026-11-20"
   }
  ],
