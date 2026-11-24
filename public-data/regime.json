@@ -1,5 +1,5 @@
 {
- "asOf": "2026-11-23",
+ "asOf": "2026-11-24",
  "key": "mid",
  "label": "Mid-cycle expansion",
  "favors": "NQ/ES long, CL firm, dips bought",
@@ -38,7 +38,7 @@
   {
    "group": "growth",
    "name": "Industrial production",
-   "value": "+2.1% y/y",
+   "value": "+1.7% y/y",
    "signal": 1,
    "text": "Factories expanding",
    "asOf": "2026-10-01"
@@ -65,7 +65,7 @@
    "value": "+0.29 pts",
    "signal": 0,
    "text": "Positive and steady",
-   "asOf": "2026-11-20"
+   "asOf": "2026-11-23"
   },
   {
    "group": "inflation",
@@ -86,18 +86,18 @@
   {
    "group": "inflation",
    "name": "5-yr inflation expectations",
-   "value": "2.18%",
+   "value": "2.15%",
    "signal": 0,
    "text": "Anchored",
-   "asOf": "2026-11-20"
+   "asOf": "2026-11-23"
   },
   {
    "group": "stress",
    "name": "Junk-bond spreads",
-   "value": "3.76 pts (+0.36 in a month)",
+   "value": "3.63 pts (+0.25 in a month)",
    "signal": 0,
    "text": "Calm credit markets",
-   "asOf": "2026-11-20"
+   "asOf": "2026-11-23"
   },
   {
    "group": "stress",
@@ -169,7 +169,7 @@
    "key": "freight",
    "name": "Freight and shipping",
    "state": "off",
-   "text": "Cass shipments +5.9% y/y; truck tonnage -0.2% over 3 months; dry-bulk shipping (BDRY) -21% over 45 trading days. No sustained break.",
+   "text": "Cass shipments +5.9% y/y; truck tonnage -0.2% over 3 months; dry-bulk shipping (BDRY) -18% over 45 trading days. No sustained break.",
    "asOf": "2026-10-01"
   },
   {
@@ -177,7 +177,7 @@
    "name": "Yield curve",
    "state": "off",
    "text": "10y − 2y = +0.29; over 3 months the 2-year moved +0.44 and the 10-year +0.23. Not recently inverted.",
-   "asOf": "2026-11-20"
+   "asOf": "2026-11-23"
   }
  ],
  "tilts": [
