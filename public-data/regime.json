@@ -1,12 +1,12 @@
 {
- "asOf": "2026-11-24",
- "key": "mid",
- "label": "Mid-cycle expansion",
- "favors": "NQ/ES long, CL firm, dips bought",
- "hurts": "Bonds (ZN/ZB)",
+ "asOf": "2026-11-25",
+ "key": "late",
+ "label": "Late cycle / overheating",
+ "favors": "CL, NG, GC, ags; short ZN",
+ "hurts": "NQ (rate-sensitive), RTY",
  "scores": {
   "growth": 0.29,
-  "inflation": 0.33,
+  "inflation": 0.67,
   "stress": 0
  },
  "flags": [],
@@ -14,10 +14,10 @@
   {
    "group": "growth",
    "name": "Jobless claims",
-   "value": "198k (4-wk avg)",
+   "value": "196k (4-wk avg)",
    "signal": 0,
    "text": "About the same as the last 6 months",
-   "asOf": "2026-11-14"
+   "asOf": "2026-11-21"
   },
   {
    "group": "growth",
@@ -54,7 +54,7 @@
   {
    "group": "growth",
    "name": "Building permits",
-   "value": "-8.7% y/y",
+   "value": "-8.5% y/y",
    "signal": 0,
    "text": "Housing pipeline steady",
    "asOf": "2026-10-01"
@@ -62,10 +62,10 @@
   {
    "group": "growth",
    "name": "Yield curve (10y − 2y)",
-   "value": "+0.29 pts",
+   "value": "+0.28 pts",
    "signal": 0,
    "text": "Positive and steady",
-   "asOf": "2026-11-23"
+   "asOf": "2026-11-24"
   },
   {
    "group": "inflation",
@@ -78,34 +78,34 @@
   {
    "group": "inflation",
    "name": "Core PCE (Fed's gauge)",
-   "value": "2.9% (3-mo annualized), 3.1% y/y",
-   "signal": 0,
-   "text": "Somewhat above target",
-   "asOf": "2026-09-01"
+   "value": "3.6% (3-mo annualized), 3.3% y/y",
+   "signal": 1,
+   "text": "Well above the Fed's 2% target",
+   "asOf": "2026-10-01"
   },
   {
    "group": "inflation",
    "name": "5-yr inflation expectations",
-   "value": "2.15%",
+   "value": "2.11%",
    "signal": 0,
    "text": "Anchored",
-   "asOf": "2026-11-23"
+   "asOf": "2026-11-24"
   },
   {
    "group": "stress",
    "name": "Junk-bond spreads",
-   "value": "3.63 pts (+0.25 in a month)",
+   "value": "3.72 pts (+0.42 in a month)",
    "signal": 0,
    "text": "Calm credit markets",
-   "asOf": "2026-11-23"
+   "asOf": "2026-11-24"
   },
   {
    "group": "stress",
    "name": "Financial conditions (Chicago Fed)",
-   "value": "-0.48",
+   "value": "-0.44",
    "signal": 0,
    "text": "Looser than average",
-   "asOf": "2026-11-13"
+   "asOf": "2026-11-20"
   },
   {
    "group": "policy",
@@ -113,7 +113,7 @@
    "value": "3.88%",
    "signal": 0,
    "text": "Effective rate",
-   "asOf": "2026-11-20"
+   "asOf": "2026-11-23"
   },
   {
    "group": "supporting",
@@ -134,10 +134,10 @@
   {
    "group": "supporting",
    "name": "Real consumer spending",
-   "value": "+3% (3-mo annualized, inflation-adjusted)",
+   "value": "+2.9% (3-mo annualized, inflation-adjusted)",
    "signal": 1,
    "text": "Consumers spending more in real terms",
-   "asOf": "2026-09-01"
+   "asOf": "2026-10-01"
   },
   {
    "group": "supporting",
@@ -161,23 +161,23 @@
    "key": "beige",
    "name": "Fed Beige Book tone",
    "state": "bullish",
-   "text": "Hawkish phrases 48 (-14% vs. 202607), dovish 30 (+30%), per 10k words. Slack language (layoffs, discounting, caution) is rising fast: long bias on bond futures.",
-   "detail": "Most frequent: hawkish price increases 28, wage pressures 11, shortages 7; dovish slowing demand 11, layoffs 7, cautious outlook 7.",
-   "asOf": "202610"
+   "text": "Hawkish phrases 52 (+5% vs. 202608), dovish 33 (+38%), per 10k words. Slack language (layoffs, discounting, caution) is rising fast: long bias on bond futures.",
+   "detail": "Most frequent: hawkish price increases 33, shortages 9, wage pressures 8; dovish cautious outlook 11, slowing demand 8, layoffs 8.",
+   "asOf": "202611"
   },
   {
    "key": "freight",
    "name": "Freight and shipping",
    "state": "off",
-   "text": "Cass shipments +5.9% y/y; truck tonnage -0.2% over 3 months; dry-bulk shipping (BDRY) -18% over 45 trading days. No sustained break.",
+   "text": "Cass shipments +5.9% y/y; truck tonnage -0.2% over 3 months; dry-bulk shipping (BDRY) -20% over 45 trading days. No sustained break.",
    "asOf": "2026-10-01"
   },
   {
    "key": "curve",
    "name": "Yield curve",
    "state": "off",
-   "text": "10y − 2y = +0.29; over 3 months the 2-year moved +0.44 and the 10-year +0.23. Not recently inverted.",
-   "asOf": "2026-11-23"
+   "text": "10y − 2y = +0.28; over 3 months the 2-year moved +0.39 and the 10-year +0.18. Not recently inverted.",
+   "asOf": "2026-11-24"
   }
  ],
  "tilts": [
