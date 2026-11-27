@@ -1,5 +1,5 @@
 {
- "asOf": "2026-11-26",
+ "asOf": "2026-11-27",
  "key": "late",
  "label": "Late cycle / overheating",
  "favors": "CL, NG, GC, ags; short ZN",
@@ -94,10 +94,10 @@
   {
    "group": "stress",
    "name": "Junk-bond spreads",
-   "value": "3.72 pts (+0.42 in a month)",
+   "value": "3.77 pts (+0.63 in a month)",
    "signal": 0,
    "text": "Calm credit markets",
-   "asOf": "2026-11-24"
+   "asOf": "2026-11-26"
   },
   {
    "group": "stress",
@@ -169,7 +169,7 @@
    "key": "freight",
    "name": "Freight and shipping",
    "state": "off",
-   "text": "Cass shipments +5.9% y/y; truck tonnage -0.2% over 3 months; dry-bulk shipping (BDRY) -22% over 45 trading days. No sustained break.",
+   "text": "Cass shipments +5.9% y/y; truck tonnage -0.2% over 3 months; dry-bulk shipping (BDRY) -19% over 45 trading days. No sustained break.",
    "asOf": "2026-10-01"
   },
   {
