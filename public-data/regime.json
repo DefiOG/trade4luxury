@@ -1,5 +1,5 @@
 {
- "asOf": "2026-11-27",
+ "asOf": "2026-11-28",
  "key": "late",
  "label": "Late cycle / overheating",
  "favors": "CL, NG, GC, ags; short ZN",
@@ -62,10 +62,10 @@
   {
    "group": "growth",
    "name": "Yield curve (10y − 2y)",
-   "value": "+0.24 pts",
+   "value": "+0.25 pts",
    "signal": 0,
    "text": "Positive and steady",
-   "asOf": "2026-11-25"
+   "asOf": "2026-11-27"
   },
   {
    "group": "inflation",
@@ -86,10 +86,10 @@
   {
    "group": "inflation",
    "name": "5-yr inflation expectations",
-   "value": "2.13%",
+   "value": "2.16%",
    "signal": 0,
    "text": "Anchored",
-   "asOf": "2026-11-25"
+   "asOf": "2026-11-27"
   },
   {
    "group": "stress",
@@ -113,7 +113,7 @@
    "value": "3.88%",
    "signal": 0,
    "text": "Effective rate",
-   "asOf": "2026-11-24"
+   "asOf": "2026-11-26"
   },
   {
    "group": "supporting",
@@ -176,8 +176,8 @@
    "key": "curve",
    "name": "Yield curve",
    "state": "off",
-   "text": "10y − 2y = +0.24; over 3 months the 2-year moved +0.39 and the 10-year +0.21. Not recently inverted.",
-   "asOf": "2026-11-25"
+   "text": "10y − 2y = +0.25; over 3 months the 2-year moved +0.44 and the 10-year +0.21. Not recently inverted.",
+   "asOf": "2026-11-27"
   }
  ],
  "tilts": [
